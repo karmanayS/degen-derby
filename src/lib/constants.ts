@@ -28,10 +28,6 @@ export const HOUSE_CUT_PERCENT = 5; // 5% of pot
 // Price polling interval during live races (ms)
 export const PRICE_POLL_INTERVAL = 5000;
 
-// Supabase
-export const SUPABASE_URL = "SUPABASE_URL_PLACEHOLDER"; // Replace with actual URL
-export const SUPABASE_ANON_KEY = "SUPABASE_ANON_KEY_PLACEHOLDER"; // Replace with actual key
-
 // DexScreener API
 export const DEXSCREENER_BASE_URL = "https://api.dexscreener.com";
 

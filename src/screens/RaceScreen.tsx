@@ -16,6 +16,7 @@ import { useBet } from "../hooks/useBet";
 import { useAuthorization } from "../utils/useAuthorization";
 import { calculateOdds } from "../lib/race-engine";
 import { supabase } from "../lib/supabase";
+import { useClientPricePolling } from "../hooks/useClientPricePolling";
 import { Race, Bet } from "../types";
 import { COLORS } from "../lib/constants";
 
@@ -33,11 +34,14 @@ export function RaceScreen() {
   const [bets, setBets] = useState<Bet[]>([]);
   const [playerBet, setPlayerBet] = useState<Bet | null>(null);
 
-  const { positions, latestPrices, isLive } = useRaceLive(
+  const { positions } = useRaceLive(
     race.status === "live" ? raceId : null
   );
   const { placeBet, loading: betLoading, error: betError } = useBet();
   const { selectedAccount } = useAuthorization();
+
+  // Client-side price polling fallback (works without edge function cron)
+  useClientPricePolling(race.status === "live" ? race : null);
 
   // Fetch bets for this race
   useEffect(() => {

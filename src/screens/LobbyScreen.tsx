@@ -13,8 +13,8 @@ import { WalletButton } from "../components/common/WalletButton";
 import { SkrBadge } from "../components/common/SkrBadge";
 import { useRaces } from "../hooks/useRaces";
 import { useSkrStatus } from "../hooks/useSkrStatus";
-import { useAuthorization } from "../utils/useAuthorization";
 import { Race } from "../types";
+import { DevMenu } from "../components/common/DevMenu";
 import { COLORS, ENTRY_FEES } from "../lib/constants";
 
 type Filter = "all" | "upcoming" | "live" | "finished";
@@ -23,7 +23,6 @@ export function LobbyScreen() {
   const navigation = useNavigation<any>();
   const { races, loading, refetch } = useRaces();
   const { hasSkr, skrBalance } = useSkrStatus();
-  const { selectedAccount } = useAuthorization();
   const [filter, setFilter] = useState<Filter>("all");
 
   const filteredRaces = races.filter((r) => {
@@ -45,10 +44,6 @@ export function LobbyScreen() {
 
   const renderRace = ({ item }: { item: Race }) => (
     <RaceCard race={item} onPress={() => handleRacePress(item)} />
-  );
-
-  const renderVipRace = ({ item }: { item: Race }) => (
-    <RaceCard race={item} onPress={() => handleRacePress(item)} isVip />
   );
 
   return (
@@ -118,6 +113,9 @@ export function LobbyScreen() {
         }
         contentContainerStyle={styles.list}
       />
+
+      {/* Dev menu for testing — remove before submission */}
+      <DevMenu />
     </View>
   );
 }
