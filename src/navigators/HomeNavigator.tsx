@@ -1,51 +1,59 @@
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import React from "react";
-import { TopBar } from "../components/top-bar/top-bar-feature";
-import { HomeScreen } from "../screens/HomeScreen";
+import { LobbyScreen } from "../screens/LobbyScreen";
+import { LeaderboardScreen } from "../screens/LeaderboardScreen";
+import { ProfileScreen } from "../screens/ProfileScreen";
 import MaterialCommunityIcon from "@expo/vector-icons/MaterialCommunityIcons";
-import { useTheme } from "react-native-paper";
-import BlankScreen from "../screens/BlankScreen";
+import { COLORS } from "../lib/constants";
 
 const Tab = createBottomTabNavigator();
 
-/**
- * This is the main navigator with a bottom tab bar.
- * Each tab is a stack navigator with its own set of screens.
- *
- * More info: https://reactnavigation.org/docs/bottom-tab-navigator/
- */
 export function HomeNavigator() {
-  const theme = useTheme();
   return (
     <Tab.Navigator
-      screenOptions={({ route }) => ({
-        header: () => <TopBar />,
-        tabBarIcon: ({ focused, color, size }) => {
-          switch (route.name) {
-            case "Home":
-              return (
-                <MaterialCommunityIcon
-                  name={focused ? "home" : "home-outline"}
-                  size={size}
-                  color={color}
-                />
-              );
-            case "Blank":
-              return (
-                <MaterialCommunityIcon
-                  name={
-                    focused ? "application-edit" : "application-edit-outline"
-                  }
-                  size={size}
-                  color={color}
-                />
-              );
-          }
+      screenOptions={{
+        headerShown: false,
+        tabBarStyle: {
+          backgroundColor: COLORS.surface,
+          borderTopColor: COLORS.background,
+          borderTopWidth: 1,
         },
-      })}
+        tabBarActiveTintColor: COLORS.primary,
+        tabBarInactiveTintColor: COLORS.textMuted,
+      }}
     >
-      <Tab.Screen name="Home" component={HomeScreen} />
-      <Tab.Screen name="Blank" component={BlankScreen} />
+      <Tab.Screen
+        name="Lobby"
+        component={LobbyScreen}
+        options={{
+          tabBarIcon: ({ color, size }) => (
+            <MaterialCommunityIcon
+              name="horse-variant-fast"
+              size={size}
+              color={color}
+            />
+          ),
+          tabBarLabel: "Races",
+        }}
+      />
+      <Tab.Screen
+        name="Leaderboard"
+        component={LeaderboardScreen}
+        options={{
+          tabBarIcon: ({ color, size }) => (
+            <MaterialCommunityIcon name="trophy" size={size} color={color} />
+          ),
+        }}
+      />
+      <Tab.Screen
+        name="Profile"
+        component={ProfileScreen}
+        options={{
+          tabBarIcon: ({ color, size }) => (
+            <MaterialCommunityIcon name="account" size={size} color={color} />
+          ),
+        }}
+      />
     </Tab.Navigator>
   );
 }
