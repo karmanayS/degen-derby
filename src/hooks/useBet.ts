@@ -26,7 +26,6 @@ export function useBet() {
     setError(null);
 
     try {
-      // Build the SOL transfer transaction
       const transaction = createEntryFeeTransaction(
         selectedAccount.publicKey,
         entryFee
@@ -37,13 +36,11 @@ export function useBet() {
       transaction.recentBlockhash = blockhash;
       transaction.feePayer = selectedAccount.publicKey;
 
-      // Sign and send via MWA
       const txSignature = await signAndSendTransaction(
         transaction,
         lastValidBlockHeight
       );
 
-      // Record bet in Supabase
       const { error: dbError } = await supabase.from("bets").insert({
         race_id: raceId,
         wallet_address: selectedAccount.publicKey.toBase58(),
@@ -54,10 +51,10 @@ export function useBet() {
 
       if (dbError) {
         setError("Bet recorded on-chain but failed to save. Contact support.");
+        setLoading(false);
         return false;
       }
 
-      // Update race pot
       await supabase.rpc("increment_pot", {
         race_id: raceId,
         amount: entryFee,

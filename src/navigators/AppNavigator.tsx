@@ -30,7 +30,7 @@ export const AppNavigator = () => {
   const isConnected = !!selectedAccount;
 
   if (isLoading) {
-    return null; // Could show a loading screen here
+    return null;
   }
 
   return (

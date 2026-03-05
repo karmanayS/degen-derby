@@ -67,8 +67,7 @@ export function RaceScreen() {
         // Check if player already bet
         if (selectedAccount) {
           const myBet = mapped.find(
-            (b) =>
-              b.walletAddress === selectedAccount.publicKey.toBase58()
+            (b) => b.walletAddress === selectedAccount.publicKey.toBase58()
           );
           if (myBet) setPlayerBet(myBet);
         }
