@@ -43,47 +43,6 @@ export function RaceScreen() {
   // Client-side price polling fallback
   useClientPricePolling(race.status === "live" ? race : null);
 
-  // Auto-transition race status
-  useEffect(() => {
-    const checkStatus = async () => {
-      const now = Date.now();
-      const start = new Date(race.startTime).getTime();
-      const end = new Date(race.endTime).getTime();
-
-      if (race.status === "upcoming" && now >= start) {
-        await supabase
-          .from("races")
-          .update({ status: "live" })
-          .eq("id", raceId);
-      } else if (race.status === "live" && now >= end) {
-        const { data: priceData } = await supabase
-          .from("race_prices")
-          .select("prices")
-          .eq("race_id", raceId)
-          .order("recorded_at", { ascending: false })
-          .limit(1);
-
-        let winningCoin: string | null = null;
-        if (priceData && priceData.length > 0) {
-          const prices = priceData[0].prices as any[];
-          const best = prices.reduce((a: any, b: any) =>
-            (a.percentChange ?? 0) > (b.percentChange ?? 0) ? a : b
-          );
-          winningCoin = best.symbol;
-        }
-
-        await supabase
-          .from("races")
-          .update({ status: "finished", winning_coin: winningCoin })
-          .eq("id", raceId);
-      }
-    };
-
-    const interval = setInterval(checkStatus, 2000);
-    checkStatus();
-    return () => clearInterval(interval);
-  }, [race.status, race.startTime, race.endTime, raceId]);
-
   // Fetch bets for this race
   useEffect(() => {
     const fetchBets = async () => {

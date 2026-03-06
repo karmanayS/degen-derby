@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -16,29 +16,46 @@ interface RaceCardProps {
 }
 
 export function RaceCard({ race, onPress, isVip }: RaceCardProps) {
+  const [now, setNow] = useState(Date.now());
+
+  // Tick every second so the timer updates
+  useEffect(() => {
+    if (race.status === "finished") return;
+    const interval = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(interval);
+  }, [race.status]);
+
+  const startMs = new Date(race.startTime).getTime();
+  const endMs = new Date(race.endTime).getTime();
+
+  // Derive live status from time (don't rely only on DB status)
+  let displayStatus = race.status;
+  if (race.status === "upcoming" && now >= startMs) {
+    displayStatus = "live";
+  }
+  if (race.status === "live" && now >= endMs) {
+    displayStatus = "finished";
+  }
+
   const statusColor = {
     upcoming: COLORS.warning,
     live: COLORS.primary,
     finished: COLORS.textMuted,
-  }[race.status];
+  }[displayStatus];
 
   const statusLabel = {
     upcoming: "UPCOMING",
     live: "LIVE",
     finished: "FINISHED",
-  }[race.status];
+  }[displayStatus];
 
   const durationLabel = formatDuration(race.raceDuration);
 
-  // Time until start or time remaining
-  const now = Date.now();
-  const startMs = new Date(race.startTime).getTime();
-  const endMs = new Date(race.endTime).getTime();
   let timeLabel = "";
-  if (race.status === "upcoming") {
+  if (displayStatus === "upcoming") {
     const secsUntil = Math.max(0, Math.floor((startMs - now) / 1000));
     timeLabel = `Starts in ${formatDuration(secsUntil)}`;
-  } else if (race.status === "live") {
+  } else if (displayStatus === "live") {
     const secsLeft = Math.max(0, Math.floor((endMs - now) / 1000));
     timeLabel = `${formatDuration(secsLeft)} left`;
   }
@@ -64,7 +81,7 @@ export function RaceCard({ race, onPress, isVip }: RaceCardProps) {
 
       {/* Coin icons row */}
       <View style={styles.coinsRow}>
-        {race.coins.map((coin, i) => (
+        {race.coins.map((coin) => (
           <View key={coin.address} style={styles.coinChip}>
             {coin.logo ? (
               <Image source={{ uri: coin.logo }} style={styles.coinIcon} />
@@ -98,7 +115,11 @@ export function RaceCard({ race, onPress, isVip }: RaceCardProps) {
 
 function formatDuration(seconds: number): string {
   if (seconds >= 3600) return `${Math.floor(seconds / 3600)}h`;
-  if (seconds >= 60) return `${Math.floor(seconds / 60)}m`;
+  if (seconds >= 60) {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return secs > 0 ? `${mins}m ${secs}s` : `${mins}m`;
+  }
   return `${seconds}s`;
 }
 
