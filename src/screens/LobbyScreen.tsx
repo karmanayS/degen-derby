@@ -13,9 +13,9 @@ import { WalletButton } from "../components/common/WalletButton";
 import { SkrBadge } from "../components/common/SkrBadge";
 import { useRaces } from "../hooks/useRaces";
 import { useSkrStatus } from "../hooks/useSkrStatus";
+import { useRaceScheduler } from "../hooks/useRaceScheduler";
 import { Race } from "../types";
-import { DevMenu } from "../components/common/DevMenu";
-import { COLORS, ENTRY_FEES } from "../lib/constants";
+import { COLORS } from "../lib/constants";
 
 type Filter = "all" | "upcoming" | "live" | "finished";
 
@@ -25,21 +25,20 @@ export function LobbyScreen() {
   const { hasSkr, skrBalance } = useSkrStatus();
   const [filter, setFilter] = useState<Filter>("all");
 
+  // Auto-create races every 4 minutes
+  useRaceScheduler();
+
   const filteredRaces = races.filter((r) => {
     if (filter === "all") return true;
     return r.status === filter;
   });
 
-  // Separate VIP races (high entry fee)
-  const standardRaces = filteredRaces.filter(
-    (r) => r.entryFee <= ENTRY_FEES.STANDARD
-  );
-  const vipRaces = filteredRaces.filter(
-    (r) => r.entryFee > ENTRY_FEES.STANDARD
-  );
-
   const handleRacePress = (race: Race) => {
-    navigation.navigate("Race", { raceId: race.id, race });
+    if (race.status === "finished") {
+      navigation.navigate("Results", { raceId: race.id });
+    } else {
+      navigation.navigate("Race", { raceId: race.id, race });
+    }
   };
 
   const renderRace = ({ item }: { item: Race }) => (
@@ -78,7 +77,7 @@ export function LobbyScreen() {
       </View>
 
       <FlatList
-        data={standardRaces}
+        data={filteredRaces}
         renderItem={renderRace}
         keyExtractor={(item) => item.id}
         refreshControl={
@@ -88,34 +87,15 @@ export function LobbyScreen() {
             tintColor={COLORS.primary}
           />
         }
-        ListHeaderComponent={
-          hasSkr && vipRaces.length > 0 ? (
-            <View style={styles.vipSection}>
-              <Text style={styles.sectionTitle}>VIP RACES</Text>
-              {vipRaces.map((race) => (
-                <RaceCard
-                  key={race.id}
-                  race={race}
-                  onPress={() => handleRacePress(race)}
-                  isVip
-                />
-              ))}
-              <Text style={styles.sectionTitle}>STANDARD RACES</Text>
-            </View>
-          ) : null
-        }
         ListEmptyComponent={
           <View style={styles.empty}>
             <Text style={styles.emptyText}>
-              {loading ? "Loading races..." : "No races found"}
+              {loading ? "Loading races..." : "No races found — one will be created shortly"}
             </Text>
           </View>
         }
         contentContainerStyle={styles.list}
       />
-
-      {/* Dev menu for testing — remove before submission */}
-      <DevMenu />
     </View>
   );
 }
@@ -166,18 +146,6 @@ const styles = StyleSheet.create({
   list: {
     paddingBottom: 20,
   },
-  vipSection: {
-    marginBottom: 8,
-  },
-  sectionTitle: {
-    color: COLORS.gold,
-    fontSize: 12,
-    fontWeight: "bold",
-    letterSpacing: 1,
-    paddingHorizontal: 16,
-    paddingTop: 12,
-    paddingBottom: 6,
-  },
   empty: {
     paddingVertical: 60,
     alignItems: "center",
@@ -185,5 +153,7 @@ const styles = StyleSheet.create({
   emptyText: {
     color: COLORS.textSecondary,
     fontSize: 14,
+    textAlign: "center",
+    paddingHorizontal: 32,
   },
 });

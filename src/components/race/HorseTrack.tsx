@@ -48,7 +48,7 @@ export function HorseTrack({ positions, coins, playerPick }: HorseTrackProps) {
       {/* Lanes — always show in position order (1st at top) */}
       {lanes.map((lane) => (
         <HorseLane
-          key={lane.symbol}
+          key={lane.address ?? lane.symbol}
           symbol={lane.symbol}
           name={lane.name}
           logo={lane.logo}

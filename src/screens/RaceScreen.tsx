@@ -5,18 +5,18 @@ import {
   StyleSheet,
   ScrollView,
   TouchableOpacity,
+  Image,
 } from "react-native";
 import { useRoute, useNavigation } from "@react-navigation/native";
 import { HorseTrack } from "../components/race/HorseTrack";
 import { CountdownTimer } from "../components/race/CountdownTimer";
-import { CoinPicker } from "../components/race/CoinPicker";
 import { BetConfirmModal } from "../components/race/BetConfirmModal";
 import { useRaceLive } from "../hooks/useRaceLive";
 import { useBet } from "../hooks/useBet";
 import { useAuthorization } from "../utils/useAuthorization";
-import { calculateOdds } from "../lib/race-engine";
 import { supabase } from "../lib/supabase";
 import { useClientPricePolling } from "../hooks/useClientPricePolling";
+import { calculateOdds } from "../lib/race-engine";
 import { Race, Bet } from "../types";
 import { COLORS } from "../lib/constants";
 
@@ -40,10 +40,10 @@ export function RaceScreen() {
   const { placeBet, loading: betLoading, error: betError } = useBet();
   const { selectedAccount } = useAuthorization();
 
-  // Client-side price polling fallback (works without edge function cron)
+  // Client-side price polling fallback
   useClientPricePolling(race.status === "live" ? race : null);
 
-  // Auto-transition race status (since edge functions aren't deployed)
+  // Auto-transition race status
   useEffect(() => {
     const checkStatus = async () => {
       const now = Date.now();
@@ -56,7 +56,6 @@ export function RaceScreen() {
           .update({ status: "live" })
           .eq("id", raceId);
       } else if (race.status === "live" && now >= end) {
-        // Determine winner from latest prices
         const { data: priceData } = await supabase
           .from("race_prices")
           .select("prices")
@@ -81,8 +80,7 @@ export function RaceScreen() {
     };
 
     const interval = setInterval(checkStatus, 2000);
-    checkStatus(); // run immediately
-
+    checkStatus();
     return () => clearInterval(interval);
   }, [race.status, race.startTime, race.endTime, raceId]);
 
@@ -107,7 +105,6 @@ export function RaceScreen() {
         }));
         setBets(mapped);
 
-        // Check if player already bet
         if (selectedAccount) {
           const myBet = mapped.find(
             (b) => b.walletAddress === selectedAccount.publicKey.toBase58()
@@ -119,7 +116,6 @@ export function RaceScreen() {
 
     fetchBets();
 
-    // Subscribe to new bets
     const channel = supabase
       .channel(`bets-${raceId}`)
       .on(
@@ -166,9 +162,8 @@ export function RaceScreen() {
             createdAt: updated.created_at,
           });
 
-          // Navigate to results when finished
           if (updated.status === "finished") {
-            navigation.replace("Results", { raceId, race: updated });
+            navigation.replace("Results", { raceId });
           }
         }
       )
@@ -207,10 +202,27 @@ export function RaceScreen() {
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
       {/* Timer */}
-      <CountdownTimer endTime={race.endTime} status={race.status} />
+      <CountdownTimer
+        endTime={isUpcoming ? race.startTime : race.endTime}
+        status={race.status}
+      />
 
-      {/* Race track (show during live race or if finished) */}
-      {(isRaceLive || race.status === "finished") && (
+      {/* Status label */}
+      <View style={styles.statusContainer}>
+        <View
+          style={[
+            styles.statusBadge,
+            { backgroundColor: isRaceLive ? COLORS.primary : COLORS.warning },
+          ]}
+        >
+          <Text style={styles.statusText}>
+            {isUpcoming ? "PLACE YOUR BETS" : "RACE IN PROGRESS"}
+          </Text>
+        </View>
+      </View>
+
+      {/* Race track (show during live race) */}
+      {isRaceLive && (
         <HorseTrack
           positions={positions}
           coins={race.coins}
@@ -218,7 +230,79 @@ export function RaceScreen() {
         />
       )}
 
-      {/* Betting info */}
+      {/* Player's bet status */}
+      {hasBet && (
+        <View style={styles.betStatus}>
+          <Text style={styles.betStatusText}>
+            You bet on{" "}
+            <Text style={{ color: COLORS.primary, fontWeight: "bold" }}>
+              {playerBet.pickedCoin}
+            </Text>
+            {" — "}{race.entryFee} SOL
+          </Text>
+        </View>
+      )}
+
+      {/* Token picker — only during waiting period and if no bet placed */}
+      {isUpcoming && !hasBet && (
+        <View style={styles.pickerSection}>
+          <Text style={styles.sectionTitle}>PICK YOUR HORSE</Text>
+          {race.coins.map((coin) => {
+            const isSelected = selectedCoin === coin.symbol;
+            const coinOdds = odds[coin.symbol];
+
+            return (
+              <TouchableOpacity
+                key={coin.address}
+                style={[styles.coinRow, isSelected && styles.coinRowSelected]}
+                onPress={() => setSelectedCoin(coin.symbol)}
+                activeOpacity={0.7}
+              >
+                <View style={styles.coinLeft}>
+                  {coin.logo ? (
+                    <Image source={{ uri: coin.logo }} style={styles.coinLogo} />
+                  ) : (
+                    <View style={[styles.coinLogo, styles.coinLogoPlaceholder]}>
+                      <Text style={styles.coinLogoText}>{coin.symbol[0]}</Text>
+                    </View>
+                  )}
+                  <View>
+                    <Text style={[styles.coinSymbol, isSelected && { color: COLORS.primary }]}>
+                      {coin.symbol}
+                    </Text>
+                    <Text style={styles.coinName} numberOfLines={1}>
+                      {coin.name}
+                    </Text>
+                  </View>
+                </View>
+                <View style={styles.coinRight}>
+                  {coinOdds ? (
+                    <Text style={styles.oddsText}>{coinOdds}x</Text>
+                  ) : null}
+                  <Text style={styles.coinPrice}>
+                    ${coin.startPrice > 0 ? coin.startPrice.toFixed(6) : "—"}
+                  </Text>
+                </View>
+                {isSelected && <View style={styles.selectedDot} />}
+              </TouchableOpacity>
+            );
+          })}
+
+          {/* Place bet button */}
+          {selectedCoin && (
+            <TouchableOpacity
+              style={styles.betButton}
+              onPress={() => setShowBetModal(true)}
+            >
+              <Text style={styles.betButtonText}>
+                Place Bet — {race.entryFee} SOL
+              </Text>
+            </TouchableOpacity>
+          )}
+        </View>
+      )}
+
+      {/* Race info */}
       <View style={styles.raceInfo}>
         <View style={styles.infoRow}>
           <Text style={styles.infoLabel}>Entry Fee</Text>
@@ -234,48 +318,17 @@ export function RaceScreen() {
           <Text style={styles.infoLabel}>Players</Text>
           <Text style={styles.infoValue}>{bets.length}</Text>
         </View>
-      </View>
-
-      {/* Player's bet status */}
-      {hasBet && (
-        <View style={styles.betStatus}>
-          <Text style={styles.betStatusText}>
-            You bet on{" "}
-            <Text style={{ color: COLORS.primary, fontWeight: "bold" }}>
-              {playerBet.pickedCoin}
-            </Text>
-          </Text>
+        <View style={styles.infoRow}>
+          <Text style={styles.infoLabel}>Duration</Text>
+          <Text style={styles.infoValue}>{Math.floor(race.raceDuration / 60)}m</Text>
         </View>
-      )}
-
-      {/* Coin picker (only show if upcoming and no bet placed) */}
-      {isUpcoming && !hasBet && (
-        <>
-          <CoinPicker
-            coins={race.coins}
-            selectedCoin={selectedCoin}
-            odds={odds}
-            onSelect={setSelectedCoin}
-          />
-
-          {selectedCoin && (
-            <TouchableOpacity
-              style={styles.betButton}
-              onPress={() => setShowBetModal(true)}
-            >
-              <Text style={styles.betButtonText}>
-                Place Bet — {race.entryFee} SOL
-              </Text>
-            </TouchableOpacity>
-          )}
-        </>
-      )}
+      </View>
 
       {/* If race is live but player hasn't bet */}
       {isRaceLive && !hasBet && (
         <View style={styles.missedBet}>
           <Text style={styles.missedBetText}>
-            Race in progress — watch the action!
+            Betting closed — watch the race!
           </Text>
         </View>
       )}
@@ -303,6 +356,126 @@ const styles = StyleSheet.create({
   content: {
     paddingBottom: 40,
   },
+  statusContainer: {
+    alignItems: "center",
+    marginVertical: 12,
+  },
+  statusBadge: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 8,
+  },
+  statusText: {
+    color: COLORS.background,
+    fontSize: 12,
+    fontWeight: "bold",
+    letterSpacing: 1,
+  },
+  betStatus: {
+    backgroundColor: COLORS.surface,
+    marginHorizontal: 16,
+    marginTop: 8,
+    borderRadius: 10,
+    padding: 14,
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: COLORS.primary,
+  },
+  betStatusText: {
+    color: COLORS.text,
+    fontSize: 14,
+  },
+  pickerSection: {
+    marginHorizontal: 16,
+    marginTop: 8,
+  },
+  sectionTitle: {
+    color: COLORS.textMuted,
+    fontSize: 11,
+    fontWeight: "600",
+    letterSpacing: 1,
+    marginBottom: 10,
+  },
+  coinRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    backgroundColor: COLORS.surface,
+    borderRadius: 10,
+    padding: 12,
+    marginBottom: 6,
+    borderWidth: 2,
+    borderColor: "transparent",
+  },
+  coinRowSelected: {
+    borderColor: COLORS.primary,
+    backgroundColor: COLORS.surfaceLight,
+  },
+  coinLeft: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+  },
+  coinLogo: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+  },
+  coinLogoPlaceholder: {
+    backgroundColor: COLORS.background,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  coinLogoText: {
+    color: COLORS.text,
+    fontSize: 16,
+    fontWeight: "bold",
+  },
+  coinSymbol: {
+    color: COLORS.text,
+    fontSize: 14,
+    fontWeight: "bold",
+  },
+  coinName: {
+    color: COLORS.textSecondary,
+    fontSize: 11,
+    maxWidth: 150,
+  },
+  coinRight: {
+    alignItems: "flex-end",
+  },
+  oddsText: {
+    color: COLORS.warning,
+    fontSize: 12,
+    fontWeight: "bold",
+    marginBottom: 2,
+  },
+  coinPrice: {
+    color: COLORS.textSecondary,
+    fontSize: 11,
+    fontVariant: ["tabular-nums"],
+  },
+  selectedDot: {
+    position: "absolute",
+    top: 8,
+    right: 8,
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: COLORS.primary,
+  },
+  betButton: {
+    backgroundColor: COLORS.primary,
+    marginTop: 12,
+    paddingVertical: 16,
+    borderRadius: 12,
+    alignItems: "center",
+  },
+  betButtonText: {
+    color: COLORS.background,
+    fontSize: 16,
+    fontWeight: "bold",
+  },
   raceInfo: {
     backgroundColor: COLORS.surface,
     marginHorizontal: 16,
@@ -323,33 +496,6 @@ const styles = StyleSheet.create({
     color: COLORS.text,
     fontSize: 13,
     fontWeight: "600",
-  },
-  betStatus: {
-    backgroundColor: COLORS.surface,
-    marginHorizontal: 16,
-    marginTop: 8,
-    borderRadius: 10,
-    padding: 14,
-    alignItems: "center",
-    borderWidth: 1,
-    borderColor: COLORS.primary,
-  },
-  betStatusText: {
-    color: COLORS.text,
-    fontSize: 14,
-  },
-  betButton: {
-    backgroundColor: COLORS.primary,
-    marginHorizontal: 16,
-    marginTop: 16,
-    paddingVertical: 16,
-    borderRadius: 12,
-    alignItems: "center",
-  },
-  betButtonText: {
-    color: COLORS.background,
-    fontSize: 16,
-    fontWeight: "bold",
   },
   missedBet: {
     marginHorizontal: 16,

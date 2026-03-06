@@ -47,11 +47,14 @@ export async function getTokenPrice(
     );
     if (solanaPairs.length === 0) return null;
 
-    const bestPair = solanaPairs.sort(
-      (a: DexScreenerPair, b: DexScreenerPair) =>
-        (b.liquidity?.usd ?? 0) - (a.liquidity?.usd ?? 0)
-    )[0];
-
+    let bestPair : DexScreenerPair = solanaPairs[0];
+    for (let i=0;i<solanaPairs.length;i++) {
+      if (!bestPair) {
+        bestPair = solanaPairs[i]
+      } else if ( (solanaPairs[i].liquidity?.usd ?? 0) > (bestPair.liquidity?.usd ?? 0) ) {
+        bestPair = solanaPairs[i]
+      }
+    }
     return {
       address: bestPair.baseToken.address,
       symbol: bestPair.baseToken.symbol,
