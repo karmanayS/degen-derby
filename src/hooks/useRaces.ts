@@ -37,19 +37,22 @@ export function useRaces() {
   useEffect(() => {
     fetchRaces();
 
-    // Subscribe to race updates
+    // Subscribe to race updates (debounced to avoid rapid re-renders)
+    let debounceTimer: ReturnType<typeof setTimeout>;
     const subscription = supabase
       .channel("races-channel")
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "races" },
         () => {
-          fetchRaces();
+          clearTimeout(debounceTimer);
+          debounceTimer = setTimeout(fetchRaces, 500);
         }
       )
       .subscribe();
 
     return () => {
+      clearTimeout(debounceTimer);
       subscription.unsubscribe();
     };
   }, []);

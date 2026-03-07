@@ -1,27 +1,73 @@
 import React, { useEffect, useState } from "react";
-import { View, Text, StyleSheet, ScrollView } from "react-native";
+import {
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  ImageBackground,
+} from "react-native";
+import { LinearGradient } from "expo-linear-gradient";
 import { WalletButton } from "../components/common/WalletButton";
-import { SkrBadge } from "../components/common/SkrBadge";
 import { useAuthorization } from "../utils/useAuthorization";
 import { useSkrStatus } from "../hooks/useSkrStatus";
 import { supabase } from "../lib/supabase";
 import { LeaderboardEntry } from "../types";
-import { COLORS } from "../lib/constants";
+
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const grassTexture = require("../../assets/images/grass-turf.png");
+
+const C = {
+  green: "#00FF88",
+  sand: "#C2A878",
+  sandDark: "#A68A64",
+  sandLight: "#D7C29E",
+  cream: "#EDEDED",
+  brownDark: "#16100A",
+  muted: "#6D4C41",
+  gold: "#F0D050",
+  danger: "#FF4444",
+};
+
+interface BetHistoryItem {
+  id: string;
+  raceId: string;
+  raceCoin: string;
+  amount: number;
+  payout: number | null;
+  result: "won" | "lost" | "pending";
+  date: string;
+}
 
 export function ProfileScreen() {
   const { selectedAccount } = useAuthorization();
-  const { hasSkr, skrBalance, loading: skrLoading } = useSkrStatus();
+  const { hasSkr } = useSkrStatus();
   const [stats, setStats] = useState<LeaderboardEntry | null>(null);
+  const [username, setUsername] = useState<string>("");
+  const [betHistory, setBetHistory] = useState<BetHistoryItem[]>([]);
 
   const walletAddress = selectedAccount?.publicKey.toBase58();
 
   useEffect(() => {
     if (!walletAddress) {
       setStats(null);
+      setUsername("");
+      setBetHistory([]);
       return;
     }
 
-    const fetchStats = async () => {
+    const fetchProfile = async () => {
+      // Fetch username
+      const { data: userData } = await supabase
+        .from("users")
+        .select("username")
+        .eq("wallet_address", walletAddress)
+        .limit(1);
+
+      if (userData && userData.length > 0) {
+        setUsername(userData[0].username);
+      }
+
+      // Fetch stats
       const { data } = await supabase
         .from("leaderboard")
         .select("*")
@@ -39,127 +85,180 @@ export function ProfileScreen() {
           totalEarned: data.total_earned,
         });
       }
+
+      // Fetch bet history
+      const { data: betsData } = await supabase
+        .from("bets")
+        .select("id, race_id, picked_coin, amount, payout, created_at")
+        .eq("wallet_address", walletAddress)
+        .order("created_at", { ascending: false })
+        .limit(10);
+
+      if (betsData && betsData.length > 0) {
+        setBetHistory(
+          betsData.map((b: any) => {
+            const payout = b.payout ?? 0;
+            const result: "won" | "lost" | "pending" =
+              b.payout === null ? "pending" : payout > 0 ? "won" : "lost";
+            return {
+              id: b.id,
+              raceId: b.race_id,
+              raceCoin: b.picked_coin,
+              amount: b.amount,
+              payout,
+              result,
+              date: formatRelativeDate(b.created_at),
+            };
+          })
+        );
+      }
     };
 
-    fetchStats();
+    fetchProfile();
   }, [walletAddress]);
 
   if (!selectedAccount) {
     return (
-      <View style={styles.container}>
+      <View style={styles.wrapper}>
+        <ImageBackground
+          source={grassTexture}
+          style={StyleSheet.absoluteFillObject}
+          imageStyle={{ resizeMode: "repeat" }}
+        />
+        <LinearGradient
+          colors={["#0A1A0ECC", "#1B5E2055", "#0A0A0F99", "#2E1808CC", "#4A2E18DD", "#3A2010EE"]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 0, y: 1 }}
+          style={StyleSheet.absoluteFillObject}
+        />
         <View style={styles.centered}>
-          <Text style={styles.title}>PROFILE</Text>
-          <Text style={styles.subtitle}>Connect your wallet to view stats</Text>
+          <Text style={styles.centeredTitle}>PROFILE</Text>
+          <Text style={styles.centeredSubtitle}>Connect your wallet to view stats</Text>
           <WalletButton />
         </View>
       </View>
     );
   }
 
+  const displayName = username || `${walletAddress!.slice(0, 4)}...${walletAddress!.slice(-4)}`;
+
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-      <Text style={styles.title}>PROFILE</Text>
+    <View style={styles.wrapper}>
+      <ImageBackground
+        source={grassTexture}
+        style={StyleSheet.absoluteFillObject}
+        imageStyle={{ resizeMode: "repeat" }}
+      />
+      <LinearGradient
+        colors={["#0A1A0ECC", "#1B5E2055", "#0A0A0F99", "#2E1808CC", "#4A2E18DD", "#3A2010EE"]}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 0, y: 1 }}
+        style={StyleSheet.absoluteFillObject}
+      />
+      <LinearGradient
+        colors={["#00000000", "#00000000", "#1A100899", "#2E1F14AA"]}
+        locations={[0, 0.5, 0.75, 1]}
+        style={StyleSheet.absoluteFillObject}
+      />
 
-      {/* Wallet */}
-      <View style={styles.card}>
-        <Text style={styles.cardLabel}>WALLET</Text>
-        <Text style={styles.walletAddress}>{walletAddress}</Text>
-        <View style={styles.walletActions}>
-          <WalletButton />
-        </View>
-      </View>
-
-      {/* SKR Status */}
-      <View style={styles.card}>
-        <Text style={styles.cardLabel}>SKR STATUS</Text>
-        {skrLoading ? (
-          <Text style={styles.loadingText}>Checking...</Text>
-        ) : hasSkr ? (
-          <View style={styles.skrActive}>
-            <SkrBadge balance={skrBalance} />
-            <Text style={styles.skrPerks}>
-              VIP races, higher pots, 1-hour races unlocked
-            </Text>
-          </View>
-        ) : (
-          <View style={styles.skrInactive}>
-            <Text style={styles.noSkrText}>No SKR tokens found</Text>
-            <Text style={styles.skrHint}>
-              Hold SKR to unlock VIP races and exclusive features
-            </Text>
-          </View>
-        )}
-      </View>
-
-      {/* Stats */}
-      <View style={styles.card}>
-        <Text style={styles.cardLabel}>YOUR STATS</Text>
-        {stats ? (
-          <View style={styles.statsGrid}>
-            <StatBox label="Degen Score" value={stats.degenScore.toString()} color={COLORS.warning} />
-            <StatBox label="Total Races" value={stats.totalRaces.toString()} />
-            <StatBox label="Wins" value={stats.wins.toString()} color={COLORS.primary} />
-            <StatBox label="Win Streak" value={stats.winStreak.toString()} />
-            <StatBox
-              label="Total Earned"
-              value={`${stats.totalEarned.toFixed(2)} SOL`}
-              color={COLORS.primary}
-            />
-          </View>
-        ) : (
-          <Text style={styles.noStatsText}>
-            No races yet. Jump in!
+      <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+        {/* User card */}
+        <View style={styles.userCard}>
+          <Text style={styles.username}>{displayName}</Text>
+          <Text style={styles.walletLabel}>WALLET</Text>
+          <Text style={styles.walletAddress}>
+            {walletAddress!.slice(0, 8)}...{walletAddress!.slice(-8)}
           </Text>
-        )}
-      </View>
-    </ScrollView>
-  );
-}
+          {hasSkr && (
+            <View style={styles.skrBadge}>
+              <Text style={styles.skrText}>SKR HOLDER</Text>
+            </View>
+          )}
+          <View style={styles.walletActions}>
+            <WalletButton />
+          </View>
+        </View>
 
-function StatBox({
-  label,
-  value,
-  color,
-}: {
-  label: string;
-  value: string;
-  color?: string;
-}) {
-  return (
-    <View style={statStyles.box}>
-      <Text style={[statStyles.value, color ? { color } : null]}>{value}</Text>
-      <Text style={statStyles.label}>{label}</Text>
+        {/* Stats bar */}
+        <View style={styles.statsBar}>
+          <View style={styles.statItem}>
+            <Text style={styles.statLabel}>RACES</Text>
+            <Text style={styles.statValue}>{stats?.totalRaces ?? 0}</Text>
+          </View>
+          <View style={styles.statDivider} />
+          <View style={styles.statItem}>
+            <Text style={styles.statLabel}>WINS</Text>
+            <Text style={[styles.statValue, { color: C.green }]}>{stats?.wins ?? 0}</Text>
+          </View>
+          <View style={styles.statDivider} />
+          <View style={styles.statItem}>
+            <Text style={styles.statLabel}>SOL EARNED</Text>
+            <Text style={[styles.statValue, { color: C.green }]}>
+              {stats?.totalEarned?.toFixed(2) ?? "0.00"}
+            </Text>
+          </View>
+        </View>
+
+        {/* Bet history */}
+        <View style={styles.historySection}>
+          <Text style={styles.historyTitle}>BET HISTORY</Text>
+          {betHistory.length === 0 ? (
+            <Text style={styles.emptyText}>No bet history</Text>
+          ) : (
+            betHistory.map((bet) => (
+              <View key={bet.id} style={styles.betRow}>
+                <View style={styles.betInfo}>
+                  <Text style={styles.betRace}>Race #{bet.raceId.slice(0, 6)}</Text>
+                  <Text style={styles.betCoin}>{bet.raceCoin} - {bet.amount} SOL</Text>
+                </View>
+                <View style={styles.betResult}>
+                  <Text
+                    style={[
+                      styles.betResultText,
+                      { color: bet.result === "won" ? C.green : bet.result === "lost" ? C.danger : C.muted },
+                    ]}
+                  >
+                    {bet.result === "won"
+                      ? `+${(bet.payout ?? 0).toFixed(2)} SOL`
+                      : bet.result === "lost"
+                        ? "LOST"
+                        : "PENDING"}
+                  </Text>
+                  <Text style={styles.betDate}>{bet.date}</Text>
+                </View>
+              </View>
+            ))
+          )}
+        </View>
+      </ScrollView>
     </View>
   );
 }
 
-const statStyles = StyleSheet.create({
-  box: {
-    backgroundColor: COLORS.background,
-    borderRadius: 8,
-    padding: 12,
-    alignItems: "center",
-    minWidth: "45%",
-  },
-  value: {
-    color: COLORS.text,
-    fontSize: 20,
-    fontWeight: "bold",
-  },
-  label: {
-    color: COLORS.textSecondary,
-    fontSize: 10,
-    marginTop: 4,
-    letterSpacing: 0.5,
-  },
-});
+function formatRelativeDate(dateStr: string): string {
+  const now = Date.now();
+  const then = new Date(dateStr).getTime();
+  const diffMs = now - then;
+  const diffMin = Math.floor(diffMs / 60000);
+  const diffHr = Math.floor(diffMin / 60);
+  const diffDay = Math.floor(diffHr / 24);
+
+  if (diffMin < 1) return "just now";
+  if (diffMin < 60) return `${diffMin}m ago`;
+  if (diffHr < 24) return `${diffHr}h ago`;
+  return `${diffDay}d ago`;
+}
 
 const styles = StyleSheet.create({
+  wrapper: {
+    flex: 1,
+    backgroundColor: "#0A1A0E",
+  },
   container: {
     flex: 1,
-    backgroundColor: COLORS.background,
   },
   content: {
+    padding: 16,
     paddingBottom: 40,
   },
   centered: {
@@ -168,76 +267,145 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 16,
   },
-  title: {
-    color: COLORS.text,
+  centeredTitle: {
+    color: C.cream,
     fontSize: 22,
     fontWeight: "900",
     letterSpacing: 2,
-    textAlign: "center",
-    paddingVertical: 16,
   },
-  subtitle: {
-    color: COLORS.textSecondary,
+  centeredSubtitle: {
+    color: C.muted,
     fontSize: 14,
   },
-  card: {
-    backgroundColor: COLORS.surface,
-    marginHorizontal: 16,
+  userCard: {
+    backgroundColor: C.sand + "18",
+    borderRadius: 10,
+    padding: 20,
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: C.sand + "33",
     marginBottom: 12,
-    borderRadius: 12,
-    padding: 16,
   },
-  cardLabel: {
-    color: COLORS.textMuted,
-    fontSize: 10,
-    fontWeight: "700",
-    letterSpacing: 1,
-    marginBottom: 10,
+  username: {
+    color: C.cream,
+    fontSize: 22,
+    fontWeight: "900",
+    marginBottom: 12,
+  },
+  walletLabel: {
+    color: C.sandDark,
+    fontSize: 9,
+    fontWeight: "800",
+    letterSpacing: 2,
+    marginBottom: 4,
   },
   walletAddress: {
-    color: COLORS.text,
+    color: C.sandLight,
     fontSize: 12,
-    fontFamily: "monospace",
-    marginBottom: 12,
+    fontWeight: "600",
+    fontVariant: ["tabular-nums"],
+  },
+  skrBadge: {
+    marginTop: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 5,
+    borderRadius: 8,
+    backgroundColor: C.gold + "15",
+    borderWidth: 1,
+    borderColor: C.gold + "44",
+  },
+  skrText: {
+    color: C.gold,
+    fontSize: 9,
+    fontWeight: "800",
+    letterSpacing: 2,
   },
   walletActions: {
-    alignItems: "flex-start",
+    marginTop: 12,
   },
-  loadingText: {
-    color: COLORS.textSecondary,
-    fontSize: 13,
-  },
-  skrActive: {
-    alignItems: "center",
-    gap: 10,
-  },
-  skrPerks: {
-    color: COLORS.textSecondary,
-    fontSize: 12,
-    textAlign: "center",
-  },
-  skrInactive: {
-    alignItems: "center",
-    gap: 6,
-  },
-  noSkrText: {
-    color: COLORS.textSecondary,
-    fontSize: 14,
-  },
-  skrHint: {
-    color: COLORS.textMuted,
-    fontSize: 12,
-    textAlign: "center",
-  },
-  statsGrid: {
+  statsBar: {
     flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 10,
+    alignItems: "center",
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    backgroundColor: C.sand + "18",
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: C.sand + "33",
+    marginBottom: 12,
   },
-  noStatsText: {
-    color: COLORS.textSecondary,
+  statItem: {
+    flex: 1,
+    alignItems: "center",
+  },
+  statDivider: {
+    width: 1,
+    height: 24,
+    backgroundColor: C.sand + "33",
+    marginHorizontal: 4,
+  },
+  statLabel: {
+    color: C.sandDark,
+    fontSize: 8,
+    fontWeight: "700",
+    letterSpacing: 1,
+    marginBottom: 2,
+  },
+  statValue: {
+    color: C.cream,
+    fontSize: 16,
+    fontWeight: "900",
+    fontVariant: ["tabular-nums"],
+  },
+  historySection: {
+    marginBottom: 16,
+  },
+  historyTitle: {
+    color: C.sand,
+    fontSize: 10,
+    fontWeight: "800",
+    letterSpacing: 1.5,
+    marginBottom: 8,
+  },
+  emptyText: {
+    color: C.muted,
     fontSize: 13,
     textAlign: "center",
-    paddingVertical: 12,
+    paddingVertical: 20,
+  },
+  betRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: C.brownDark + "88",
+  },
+  betInfo: {
+    flex: 1,
+  },
+  betRace: {
+    color: C.sandLight,
+    fontSize: 13,
+    fontWeight: "700",
+  },
+  betCoin: {
+    color: C.muted,
+    fontSize: 10,
+    marginTop: 2,
+  },
+  betResult: {
+    alignItems: "flex-end",
+  },
+  betResultText: {
+    fontSize: 13,
+    fontWeight: "900",
+    fontVariant: ["tabular-nums"],
+  },
+  betDate: {
+    color: C.muted,
+    fontSize: 9,
+    marginTop: 2,
   },
 });
