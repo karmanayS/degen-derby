@@ -44,13 +44,22 @@ export const FALLBACK_COINS = [
 // Theme colors
 export const COLORS = {
   background: "#0A0A0F",
-  surface: "#1A1A2E",
-  surfaceLight: "#252540",
+  surface: "#141420",
+  surfaceLight: "#1E1E30",
   primary: "#00FF88",
   danger: "#FF4444",
   warning: "#FFB800",
   gold: "#FFD700",
   text: "#FFFFFF",
-  textSecondary: "#8888AA",
-  textMuted: "#555570",
+  textSecondary: "#9999BB",
+  textMuted: "#555577",
+  border: "#2A2A44",
+  // Racing theme colors
+  grass: "#2E7D32",
+  grassDark: "#1B5E20",
+  sand: "#C2A878",
+  sandDark: "#A08B5B",
+  sandLight: "#D4C4A0",
+  cream: "#EDEDED",
+  warmBrown: "#6D4C41",
 } as const;

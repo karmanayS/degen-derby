@@ -1,45 +1,59 @@
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import React from "react";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import MaterialCommunityIcon from "@expo/vector-icons/MaterialCommunityIcons";
 import { LobbyScreen } from "../screens/LobbyScreen";
 import { LeaderboardScreen } from "../screens/LeaderboardScreen";
 import { ProfileScreen } from "../screens/ProfileScreen";
-import MaterialCommunityIcon from "@expo/vector-icons/MaterialCommunityIcons";
-import { COLORS } from "../lib/constants";
+
+const T = {
+  tabBg: "#1A1209",
+  borderColor: "#2A1A0D",
+  gold: "#D4A84B",
+  muted: "#4E342E",
+};
 
 const Tab = createBottomTabNavigator();
 
 export function HomeNavigator() {
+  const insets = useSafeAreaInsets();
+
   return (
     <Tab.Navigator
       screenOptions={{
         headerShown: false,
         tabBarStyle: {
-          backgroundColor: COLORS.surface,
-          borderTopColor: COLORS.background,
+          backgroundColor: T.tabBg,
+          borderTopColor: T.borderColor,
           borderTopWidth: 1,
+          height: 68 + insets.bottom,
+          paddingBottom: insets.bottom + 4,
+          paddingTop: 8,
         },
-        tabBarActiveTintColor: COLORS.primary,
-        tabBarInactiveTintColor: COLORS.textMuted,
+        tabBarActiveTintColor: T.gold,
+        tabBarInactiveTintColor: T.muted + "AA",
+        tabBarLabelStyle: {
+          fontSize: 12,
+          fontWeight: "800",
+          letterSpacing: 0.5,
+        },
       }}
     >
       <Tab.Screen
         name="Lobby"
         component={LobbyScreen}
         options={{
-          tabBarIcon: ({ color, size }) => (
-            <MaterialCommunityIcon
-              name="horse-variant-fast"
-              size={size}
-              color={color}
-            />
-          ),
           tabBarLabel: "Races",
+          tabBarIcon: ({ color, size }) => (
+            <MaterialCommunityIcon name="horse-variant-fast" size={size} color={color} />
+          ),
         }}
       />
       <Tab.Screen
         name="Leaderboard"
         component={LeaderboardScreen}
         options={{
+          tabBarLabel: "Leaderboard",
           tabBarIcon: ({ color, size }) => (
             <MaterialCommunityIcon name="trophy" size={size} color={color} />
           ),
@@ -49,6 +63,7 @@ export function HomeNavigator() {
         name="Profile"
         component={ProfileScreen}
         options={{
+          tabBarLabel: "Profile",
           tabBarIcon: ({ color, size }) => (
             <MaterialCommunityIcon name="account" size={size} color={color} />
           ),

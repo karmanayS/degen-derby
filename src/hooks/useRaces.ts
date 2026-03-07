@@ -10,7 +10,7 @@ export function useRaces() {
     setLoading(true);
     const { data, error } = await supabase
       .from("races")
-      .select("*")
+      .select("*, bets(count)")
       .order("start_time", { ascending: false })
       .limit(20);
 
@@ -26,6 +26,7 @@ export function useRaces() {
           endTime: row.end_time,
           status: row.status,
           totalPot: row.total_pot,
+          playerCount: row.bets?.[0]?.count ?? 0,
           createdAt: row.created_at,
         }))
       );

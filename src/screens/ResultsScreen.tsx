@@ -48,6 +48,7 @@ export function ResultsScreen() {
         endTime: raceData.end_time,
         status: raceData.status,
         totalPot: raceData.total_pot,
+        playerCount: 0,
         createdAt: raceData.created_at,
       };
       setRace(raceObj);

@@ -1,12 +1,24 @@
-import React, { useEffect } from "react";
-import { View, Text, StyleSheet, Image } from "react-native";
+import React, { useEffect, useMemo, useState } from "react";
+import { View, Text, StyleSheet, Image, LayoutChangeEvent, Pressable } from "react-native";
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
   withTiming,
   Easing,
 } from "react-native-reanimated";
-import { COLORS } from "../../lib/constants";
+
+const T = {
+  brownDark: "#16100A",
+  brownWood: "#3A2818",
+  brownGrain: "#2A1C12",
+  sand: "#C2A878",
+  sandLight: "#D7C29E",
+  muted: "#6D4C41",
+  cream: "#EDEDED",
+  gold: "#F0D050",
+  green: "#00FF88",
+  danger: "#FF4444",
+};
 
 interface HorseLaneProps {
   symbol: string;
@@ -17,175 +29,190 @@ interface HorseLaneProps {
   rank: number;
   isPlayerPick: boolean;
   totalHorses: number;
+  laneIndex: number;
+  selectable?: boolean;
+  isSelected?: boolean;
+  onSelect?: (symbol: string) => void;
 }
+
+const ICON_SIZE = 24;
 
 export function HorseLane({
   symbol,
+  name,
   logo,
   percentChange,
   trackPosition,
   rank,
   isPlayerPick,
-  totalHorses,
+  laneIndex,
+  selectable,
+  isSelected,
+  onSelect,
 }: HorseLaneProps) {
-  const animatedWidth = useSharedValue(0);
+  const [trackWidth, setTrackWidth] = useState(0);
+  const position = useSharedValue(0);
 
-  useEffect(() => {
-    animatedWidth.value = withTiming(trackPosition, {
-      duration: 800,
-      easing: Easing.out(Easing.cubic),
-    });
+  const normalizedProgress = useMemo(() => {
+    return Math.max(0, Math.min(1, trackPosition / 85));
   }, [trackPosition]);
 
-  const barStyle = useAnimatedStyle(() => ({
-    width: `${animatedWidth.value}%`,
+  useEffect(() => {
+    if (!trackWidth) return;
+    const usable = Math.max(trackWidth - ICON_SIZE, 0);
+    const target = usable * normalizedProgress;
+    position.value = withTiming(target, {
+      duration: 900,
+      easing: Easing.out(Easing.cubic),
+    });
+  }, [normalizedProgress, position, trackWidth]);
+
+  const animatedStyle = useAnimatedStyle(() => ({
+    transform: [{ translateX: position.value }],
   }));
 
+  const onTrackLayout = (event: LayoutChangeEvent) => {
+    setTrackWidth(event.nativeEvent.layout.width);
+  };
+
+  const changeColor = percentChange >= 0 ? "#4CAF50" : T.danger;
+  const displayName = name.length > 8 ? symbol : name;
   const isLeader = rank === 1;
-  const changeColor =
-    percentChange >= 0 ? COLORS.primary : COLORS.danger;
+
+  const Wrapper = selectable ? Pressable : View;
+  const wrapperProps = selectable ? { onPress: () => onSelect?.(symbol) } : {};
 
   return (
-    <View
-      style={[
-        styles.lane,
-        isPlayerPick && styles.playerPickLane,
-      ]}
-    >
-      {/* Coin info on the left */}
-      <View style={styles.coinInfo}>
-        {logo ? (
-          <Image source={{ uri: logo }} style={styles.coinLogo} />
-        ) : (
-          <View style={[styles.coinLogo, styles.coinLogoPlaceholder]}>
-            <Text style={styles.coinLogoText}>{symbol[0]}</Text>
-          </View>
-        )}
-        <Text style={styles.symbol} numberOfLines={1}>
-          {symbol}
-        </Text>
+    <Wrapper {...wrapperProps} style={[styles.laneWrapper, isSelected && styles.laneSelected]}>
+      <View style={styles.laneInfo}>
+        <Text style={[styles.laneNum, isLeader && styles.leaderNum]}>{laneIndex + 1}</Text>
+        <Text style={styles.coinName} numberOfLines={1}>{displayName}</Text>
       </View>
 
-      {/* Track */}
-      <View style={styles.track}>
-        <Animated.View
-          style={[
-            styles.bar,
-            barStyle,
-            {
-              backgroundColor: isLeader ? COLORS.primary : COLORS.surfaceLight,
-            },
-            isLeader && styles.leaderBar,
-          ]}
-        >
-          {/* Horse icon at the front of the bar */}
-          <View
-            style={[
-              styles.horseHead,
-              {
-                backgroundColor: isLeader ? COLORS.primary : COLORS.surfaceLight,
-                borderColor: isLeader ? COLORS.primary : COLORS.textMuted,
-              },
-            ]}
-          />
+      <View style={styles.trackArea} onLayout={onTrackLayout}>
+        <View style={styles.trackLine} />
+        <Animated.View style={[styles.iconWrap, animatedStyle]}>
+          {logo ? (
+            <Image
+              source={{ uri: logo }}
+              style={[
+                styles.coinIcon,
+                isLeader && styles.leaderIcon,
+                isSelected && styles.selectedIcon,
+                isPlayerPick && styles.playerPickIcon,
+              ]}
+            />
+          ) : (
+            <View style={[styles.coinIcon, styles.coinIconPlaceholder, isLeader && styles.leaderIcon, isSelected && styles.selectedIcon]}>
+              <Text style={{ color: T.gold, fontSize: 10, fontWeight: "bold" }}>{symbol[0]}</Text>
+            </View>
+          )}
         </Animated.View>
-
-        {/* Finish line */}
-        <View style={styles.finishLine} />
       </View>
 
-      {/* Percent change */}
-      <Text style={[styles.percentChange, { color: changeColor }]}>
-        {percentChange >= 0 ? "+" : ""}
-        {percentChange.toFixed(2)}%
+      <Text style={[styles.percent, { color: changeColor }]}>
+        {percentChange >= 0 ? "+" : ""}{percentChange.toFixed(2)}%
       </Text>
-    </View>
+    </Wrapper>
   );
 }
 
 const styles = StyleSheet.create({
-  lane: {
+  laneWrapper: {
     flexDirection: "row",
     alignItems: "center",
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    borderRadius: 8,
-    marginVertical: 3,
-    backgroundColor: COLORS.surface,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderBottomWidth: 1,
+    borderBottomColor: T.brownDark + "88",
   },
-  playerPickLane: {
-    borderWidth: 1,
-    borderColor: COLORS.gold,
+  laneSelected: {
+    backgroundColor: "#00FF8812",
   },
-  coinInfo: {
-    width: 60,
+  laneInfo: {
+    flexDirection: "row",
     alignItems: "center",
-    marginRight: 8,
+    width: 72,
   },
-  coinLogo: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
+  laneNum: {
+    color: T.muted,
+    fontSize: 15,
+    fontWeight: "900",
+    width: 20,
+    textAlign: "center",
   },
-  coinLogoPlaceholder: {
-    backgroundColor: COLORS.surfaceLight,
-    justifyContent: "center",
-    alignItems: "center",
+  leaderNum: {
+    color: T.gold,
   },
-  coinLogoText: {
-    color: COLORS.text,
-    fontSize: 12,
-    fontWeight: "bold",
+  coinName: {
+    color: T.sandLight,
+    fontSize: 11,
+    fontWeight: "700",
+    marginLeft: 4,
   },
-  symbol: {
-    color: COLORS.text,
-    fontSize: 10,
-    fontWeight: "600",
-    marginTop: 2,
-  },
-  track: {
+  trackArea: {
     flex: 1,
-    height: 24,
-    backgroundColor: COLORS.background,
-    borderRadius: 12,
-    overflow: "hidden",
-    position: "relative",
-  },
-  bar: {
-    height: "100%",
-    borderRadius: 12,
+    height: ICON_SIZE + 8,
     justifyContent: "center",
-    alignItems: "flex-end",
-    minWidth: 12,
   },
-  leaderBar: {
-    shadowColor: COLORS.primary,
+  trackLine: {
+    position: "absolute",
+    left: 0,
+    right: 0,
+    height: 2,
+    backgroundColor: "#6B5530",
+    borderRadius: 1,
+  },
+  iconWrap: {
+    position: "absolute",
+    top: 4,
+    left: 0,
+  },
+  coinIcon: {
+    width: ICON_SIZE,
+    height: ICON_SIZE,
+    borderRadius: ICON_SIZE / 2,
+    backgroundColor: T.brownGrain,
+    borderWidth: 1.5,
+    borderColor: T.brownWood,
+  },
+  coinIconPlaceholder: {
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  selectedIcon: {
+    borderColor: "#00FF88",
+    borderWidth: 2.5,
+    shadowColor: "#00FF88",
+    shadowOpacity: 0.8,
+    shadowRadius: 10,
     shadowOffset: { width: 0, height: 0 },
+    elevation: 12,
+  },
+  playerPickIcon: {
+    borderColor: T.gold,
+    borderWidth: 2,
+    shadowColor: T.gold,
     shadowOpacity: 0.6,
     shadowRadius: 8,
-    elevation: 4,
+    shadowOffset: { width: 0, height: 0 },
+    elevation: 8,
   },
-  horseHead: {
-    width: 18,
-    height: 18,
-    borderRadius: 9,
-    borderWidth: 2,
-    marginRight: -2,
+  leaderIcon: {
+    borderColor: "#FFD700",
+    borderWidth: 2.5,
+    shadowColor: "#FFD700",
+    shadowOpacity: 1,
+    shadowRadius: 22,
+    shadowOffset: { width: 0, height: 0 },
+    elevation: 24,
   },
-  finishLine: {
-    position: "absolute",
-    right: "8%",
-    top: 0,
-    bottom: 0,
-    width: 2,
-    backgroundColor: COLORS.textMuted,
-    opacity: 0.4,
-  },
-  percentChange: {
-    width: 65,
-    textAlign: "right",
-    fontSize: 13,
-    fontWeight: "bold",
+  percent: {
+    fontSize: 11,
+    fontWeight: "800",
     fontVariant: ["tabular-nums"],
+    width: 60,
+    textAlign: "right",
+    marginLeft: 6,
   },
 });

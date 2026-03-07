@@ -1,19 +1,33 @@
 import React from "react";
-import { View, Text, StyleSheet } from "react-native";
+import { View, StyleSheet } from "react-native";
 import { HorseLane } from "./HorseLane";
 import { HorsePosition } from "../../lib/race-engine";
 import { Coin } from "../../types";
-import { COLORS } from "../../lib/constants";
+import WoodGrainTexture from "../common/WoodGrainTexture";
+
+const T = {
+  cardBg: "#221710",
+  brownWood: "#3A2818",
+};
 
 interface HorseTrackProps {
   positions: HorsePosition[];
   coins: Coin[];
-  playerPick?: string; // coin symbol the player bet on
+  playerPick?: string;
+  selectable?: boolean;
+  selectedCoin?: string | null;
+  onCoinSelect?: (symbol: string) => void;
 }
 
-export function HorseTrack({ positions, coins, playerPick }: HorseTrackProps) {
-  // Map positions to coin data for display
-  const lanes = positions.map((pos) => {
+export function HorseTrack({
+  positions,
+  coins,
+  playerPick,
+  selectable,
+  selectedCoin,
+  onCoinSelect,
+}: HorseTrackProps) {
+  const lanes = positions.map((pos, i) => {
     const coin = coins.find(
       (c) => c.symbol === pos.symbol || c.address === pos.address
     );
@@ -21,70 +35,60 @@ export function HorseTrack({ positions, coins, playerPick }: HorseTrackProps) {
       ...pos,
       name: coin?.name ?? pos.symbol,
       logo: coin?.logo ?? "",
+      laneIndex: i,
     };
   });
 
-  if (lanes.length === 0) {
-    return (
-      <View style={styles.container}>
-        <Text style={styles.waitingText}>Waiting for race to start...</Text>
-      </View>
-    );
-  }
+  // If no positions yet (upcoming), show coins as static lanes
+  const displayLanes = lanes.length > 0 ? lanes : coins.map((coin, i) => ({
+    symbol: coin.symbol,
+    address: coin.address,
+    percentChange: 0,
+    trackPosition: 42,
+    rank: i + 1,
+    name: coin.name,
+    logo: coin.logo,
+    laneIndex: i,
+  }));
 
   return (
     <View style={styles.container}>
-      {/* Header */}
-      <View style={styles.header}>
-        <Text style={styles.headerLabel}>HORSE</Text>
-        <Text style={[styles.headerLabel, { flex: 1, textAlign: "center" }]}>
-          TRACK
-        </Text>
-        <Text style={[styles.headerLabel, { width: 65, textAlign: "right" }]}>
-          GAIN
-        </Text>
+      <WoodGrainTexture opacity={0.45} borderRadius={12} />
+      <View style={styles.trackBody}>
+        {displayLanes.map((lane) => (
+          <HorseLane
+            key={lane.address ?? lane.symbol}
+            symbol={lane.symbol}
+            name={lane.name}
+            logo={lane.logo}
+            percentChange={lane.percentChange}
+            trackPosition={lane.trackPosition}
+            rank={lane.rank}
+            isPlayerPick={lane.symbol === playerPick}
+            totalHorses={displayLanes.length}
+            laneIndex={lane.laneIndex}
+            selectable={selectable}
+            isSelected={selectedCoin === lane.symbol}
+            onSelect={onCoinSelect}
+          />
+        ))}
       </View>
-
-      {/* Lanes — always show in position order (1st at top) */}
-      {lanes.map((lane) => (
-        <HorseLane
-          key={lane.address ?? lane.symbol}
-          symbol={lane.symbol}
-          name={lane.name}
-          logo={lane.logo}
-          percentChange={lane.percentChange}
-          trackPosition={lane.trackPosition}
-          rank={lane.rank}
-          isPlayerPick={lane.symbol === playerPick}
-          totalHorses={lanes.length}
-        />
-      ))}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
-    paddingVertical: 8,
+    marginVertical: 8,
+    marginHorizontal: 12,
+    borderRadius: 12,
+    overflow: "hidden",
+    borderWidth: 1.5,
+    borderColor: T.brownWood + "88",
+    backgroundColor: T.cardBg,
   },
-  header: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingHorizontal: 12,
-    paddingBottom: 6,
-    marginBottom: 4,
-  },
-  headerLabel: {
-    color: COLORS.textMuted,
-    fontSize: 10,
-    fontWeight: "600",
-    letterSpacing: 1,
-    width: 60,
-  },
-  waitingText: {
-    color: COLORS.textSecondary,
-    fontSize: 14,
-    textAlign: "center",
-    paddingVertical: 40,
+  trackBody: {
+    paddingVertical: 4,
+    zIndex: 1,
   },
 });

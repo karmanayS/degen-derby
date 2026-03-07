@@ -17,6 +17,7 @@ export interface Race {
   endTime: string;
   status: "upcoming" | "live" | "finished";
   totalPot: number;
+  playerCount: number;
   createdAt: string;
 }
 

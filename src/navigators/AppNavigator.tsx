@@ -14,6 +14,11 @@ import { COLORS } from "../lib/constants";
 
 const Stack = createNativeStackNavigator();
 
+const T = {
+  headerBg: "#0F1A12",
+  sand: "#D7C29E",
+};
+
 const DegenDarkTheme = {
   ...DarkTheme,
   colors: {
@@ -52,9 +57,10 @@ export const AppNavigator = () => {
               component={RaceScreen}
               options={{
                 headerShown: true,
-                title: "Race",
-                headerStyle: { backgroundColor: COLORS.surface },
-                headerTintColor: COLORS.text,
+                title: "RACE",
+                headerStyle: { backgroundColor: T.headerBg, shadowColor: "transparent", elevation: 0 } as any,
+                headerTintColor: T.sand,
+                headerTitleStyle: { fontWeight: "900", fontSize: 16 },
               }}
             />
             <Stack.Screen
@@ -62,9 +68,10 @@ export const AppNavigator = () => {
               component={ResultsScreen}
               options={{
                 headerShown: true,
-                title: "Results",
-                headerStyle: { backgroundColor: COLORS.surface },
-                headerTintColor: COLORS.text,
+                title: "RESULTS",
+                headerStyle: { backgroundColor: T.headerBg, shadowColor: "transparent", elevation: 0 } as any,
+                headerTintColor: T.sand,
+                headerTitleStyle: { fontWeight: "900", fontSize: 16 },
                 headerBackVisible: false,
               }}
             />
