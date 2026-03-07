@@ -99,7 +99,7 @@ export function RaceCard({ race, onPress, isVip }: RaceCardProps) {
 
       {/* Footer */}
       <View style={styles.footer}>
-        <Text style={styles.entryFee}>{race.entryFee} SOL</Text>
+        <Text style={styles.entryFee}>Min {race.entryFee} SOL</Text>
         <Text style={styles.pot}>
           Pot: {race.totalPot.toFixed(2)} SOL
         </Text>

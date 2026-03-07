@@ -18,9 +18,9 @@ export const RACE_DURATIONS = {
   LONG: 3600, // 1 hour (VIP only)
 } as const;
 
-export const ENTRY_FEES = {
-  STANDARD: 0.05, // SOL
-  VIP: 0.5, // SOL (SKR holders only)
+export const BET_LIMITS = {
+  MIN: 0.01, // SOL
+  MAX: 10, // SOL
 } as const;
 
 export const HOUSE_CUT_PERCENT = 5; // 5% of pot

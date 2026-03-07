@@ -71,8 +71,60 @@ export async function getTokenPrice(
 export async function getMultipleTokenPrices(
   addresses: string[]
 ): Promise<TokenPriceResult[]> {
-  const results = await Promise.all(addresses.map(getTokenPrice));
-  return results.filter((r): r is TokenPriceResult => r !== null);
+  if (addresses.length === 0) return [];
+
+  try {
+    // DexScreener supports comma-separated addresses (max 30)
+    const chunks: string[][] = [];
+    for (let i = 0; i < addresses.length; i += 30) {
+      chunks.push(addresses.slice(i, i + 30));
+    }
+
+    const results: TokenPriceResult[] = [];
+
+    for (const chunk of chunks) {
+      const res = await fetch(
+        `${DEXSCREENER_BASE_URL}/latest/dex/tokens/${chunk.join(",")}`
+      );
+      const data = await res.json();
+
+      if (!data.pairs || data.pairs.length === 0) continue;
+
+      const solanaPairs = data.pairs.filter(
+        (p: DexScreenerPair) => p.chainId === "solana"
+      );
+
+      // Group pairs by token address, pick highest liquidity pair per token
+      const bestByToken = new Map<string, DexScreenerPair>();
+      for (const pair of solanaPairs) {
+        const addr = pair.baseToken.address;
+        const existing = bestByToken.get(addr);
+        if (
+          !existing ||
+          (pair.liquidity?.usd ?? 0) > (existing.liquidity?.usd ?? 0)
+        ) {
+          bestByToken.set(addr, pair);
+        }
+      }
+
+      for (const [, pair] of bestByToken) {
+        results.push({
+          address: pair.baseToken.address,
+          symbol: pair.baseToken.symbol,
+          name: pair.baseToken.name,
+          price: parseFloat(pair.priceUsd),
+          priceChange24h: pair.priceChange?.h24 ?? 0,
+          logo: pair.info?.imageUrl ?? "",
+        });
+      }
+    }
+
+    return results;
+  } catch {
+    // Fallback to individual calls if batch fails
+    const results = await Promise.all(addresses.map(getTokenPrice));
+    return results.filter((r): r is TokenPriceResult => r !== null);
+  }
 }
 
 interface BoostedToken {

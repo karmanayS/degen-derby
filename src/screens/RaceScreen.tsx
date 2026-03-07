@@ -6,6 +6,7 @@ import {
   ScrollView,
   TouchableOpacity,
   Image,
+  TextInput,
 } from "react-native";
 import { useRoute, useNavigation } from "@react-navigation/native";
 import { HorseTrack } from "../components/race/HorseTrack";
@@ -15,10 +16,11 @@ import { useRaceLive } from "../hooks/useRaceLive";
 import { useBet } from "../hooks/useBet";
 import { useAuthorization } from "../utils/useAuthorization";
 import { supabase } from "../lib/supabase";
-import { useClientPricePolling } from "../hooks/useClientPricePolling";
 import { calculateOdds } from "../lib/race-engine";
 import { Race, Bet } from "../types";
-import { COLORS } from "../lib/constants";
+import { COLORS, BET_LIMITS } from "../lib/constants";
+
+const QUICK_AMOUNTS = [0.05, 0.1, 0.5, 1];
 
 export function RaceScreen() {
   const route = useRoute<any>();
@@ -30,6 +32,7 @@ export function RaceScreen() {
 
   const [race, setRace] = useState<Race>(initialRace);
   const [selectedCoin, setSelectedCoin] = useState<string | null>(null);
+  const [betAmount, setBetAmount] = useState("0.05");
   const [showBetModal, setShowBetModal] = useState(false);
   const [bets, setBets] = useState<Bet[]>([]);
   const [playerBet, setPlayerBet] = useState<Bet | null>(null);
@@ -39,9 +42,6 @@ export function RaceScreen() {
   );
   const { placeBet, loading: betLoading, error: betError } = useBet();
   const { selectedAccount } = useAuthorization();
-
-  // Client-side price polling fallback
-  useClientPricePolling(race.status === "live" ? race : null);
 
   // Fetch bets for this race
   useEffect(() => {
@@ -137,9 +137,13 @@ export function RaceScreen() {
     bets.map((b) => ({ pickedCoin: b.pickedCoin, amount: b.amount }))
   );
 
+  const parsedAmount = parseFloat(betAmount) || 0;
+  const isValidBet =
+    parsedAmount >= BET_LIMITS.MIN && parsedAmount <= BET_LIMITS.MAX;
+
   const handleConfirmBet = async () => {
-    if (!selectedCoin) return;
-    const success = await placeBet(raceId, selectedCoin, race.entryFee);
+    if (!selectedCoin || !isValidBet) return;
+    const success = await placeBet(raceId, selectedCoin, parsedAmount);
     if (success) {
       setShowBetModal(false);
       setPlayerBet({
@@ -147,7 +151,7 @@ export function RaceScreen() {
         raceId,
         walletAddress: selectedAccount!.publicKey.toBase58(),
         pickedCoin: selectedCoin,
-        amount: race.entryFee,
+        amount: parsedAmount,
         createdAt: new Date().toISOString(),
       });
     }
@@ -193,16 +197,19 @@ export function RaceScreen() {
       {hasBet && (
         <View style={styles.betStatus}>
           <Text style={styles.betStatusText}>
-            You bet on{" "}
+            You bet{" "}
+            <Text style={{ color: COLORS.primary, fontWeight: "bold" }}>
+              {playerBet.amount} SOL
+            </Text>
+            {" on "}
             <Text style={{ color: COLORS.primary, fontWeight: "bold" }}>
               {playerBet.pickedCoin}
             </Text>
-            {" — "}{race.entryFee} SOL
           </Text>
         </View>
       )}
 
-      {/* Token picker — only during waiting period and if no bet placed */}
+      {/* Token picker + bet amount — only during waiting period and if no bet placed */}
       {isUpcoming && !hasBet && (
         <View style={styles.pickerSection}>
           <Text style={styles.sectionTitle}>PICK YOUR HORSE</Text>
@@ -239,7 +246,7 @@ export function RaceScreen() {
                     <Text style={styles.oddsText}>{coinOdds}x</Text>
                   ) : null}
                   <Text style={styles.coinPrice}>
-                    ${coin.startPrice > 0 ? coin.startPrice.toFixed(6) : "—"}
+                    ${coin.startPrice > 0 ? coin.startPrice.toFixed(6) : "\u2014"}
                   </Text>
                 </View>
                 {isSelected && <View style={styles.selectedDot} />}
@@ -247,16 +254,67 @@ export function RaceScreen() {
             );
           })}
 
-          {/* Place bet button */}
+          {/* Bet amount selector */}
           {selectedCoin && (
-            <TouchableOpacity
-              style={styles.betButton}
-              onPress={() => setShowBetModal(true)}
-            >
-              <Text style={styles.betButtonText}>
-                Place Bet — {race.entryFee} SOL
-              </Text>
-            </TouchableOpacity>
+            <View style={styles.betAmountSection}>
+              <Text style={styles.sectionTitle}>BET AMOUNT (SOL)</Text>
+
+              {/* Quick amount buttons */}
+              <View style={styles.quickAmounts}>
+                {QUICK_AMOUNTS.map((amt) => (
+                  <TouchableOpacity
+                    key={amt}
+                    style={[
+                      styles.quickAmountBtn,
+                      parsedAmount === amt && styles.quickAmountBtnActive,
+                    ]}
+                    onPress={() => setBetAmount(amt.toString())}
+                  >
+                    <Text
+                      style={[
+                        styles.quickAmountText,
+                        parsedAmount === amt && styles.quickAmountTextActive,
+                      ]}
+                    >
+                      {amt}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+
+              {/* Custom amount input */}
+              <View style={styles.customAmountRow}>
+                <TextInput
+                  style={[
+                    styles.amountInput,
+                    !isValidBet && betAmount.length > 0 && styles.amountInputError,
+                  ]}
+                  value={betAmount}
+                  onChangeText={setBetAmount}
+                  keyboardType="decimal-pad"
+                  placeholder={`${BET_LIMITS.MIN} - ${BET_LIMITS.MAX}`}
+                  placeholderTextColor={COLORS.textMuted}
+                />
+                <Text style={styles.solLabel}>SOL</Text>
+              </View>
+
+              {!isValidBet && betAmount.length > 0 && (
+                <Text style={styles.betError}>
+                  Min {BET_LIMITS.MIN} SOL — Max {BET_LIMITS.MAX} SOL
+                </Text>
+              )}
+
+              {/* Place bet button */}
+              <TouchableOpacity
+                style={[styles.betButton, !isValidBet && styles.betButtonDisabled]}
+                onPress={() => setShowBetModal(true)}
+                disabled={!isValidBet}
+              >
+                <Text style={styles.betButtonText}>
+                  Place Bet — {isValidBet ? parsedAmount : "..."} SOL
+                </Text>
+              </TouchableOpacity>
+            </View>
           )}
         </View>
       )}
@@ -264,8 +322,12 @@ export function RaceScreen() {
       {/* Race info */}
       <View style={styles.raceInfo}>
         <View style={styles.infoRow}>
-          <Text style={styles.infoLabel}>Entry Fee</Text>
-          <Text style={styles.infoValue}>{race.entryFee} SOL</Text>
+          <Text style={styles.infoLabel}>Min Bet</Text>
+          <Text style={styles.infoValue}>{BET_LIMITS.MIN} SOL</Text>
+        </View>
+        <View style={styles.infoRow}>
+          <Text style={styles.infoLabel}>Max Bet</Text>
+          <Text style={styles.infoValue}>{BET_LIMITS.MAX} SOL</Text>
         </View>
         <View style={styles.infoRow}>
           <Text style={styles.infoLabel}>Total Pot</Text>
@@ -296,7 +358,7 @@ export function RaceScreen() {
       <BetConfirmModal
         visible={showBetModal}
         coin={selectedCoinData ?? null}
-        entryFee={race.entryFee}
+        entryFee={parsedAmount}
         odds={odds[selectedCoin ?? ""]}
         loading={betLoading}
         error={betError}
@@ -423,12 +485,75 @@ const styles = StyleSheet.create({
     borderRadius: 5,
     backgroundColor: COLORS.primary,
   },
+  betAmountSection: {
+    marginTop: 16,
+  },
+  quickAmounts: {
+    flexDirection: "row",
+    gap: 8,
+    marginBottom: 10,
+  },
+  quickAmountBtn: {
+    flex: 1,
+    paddingVertical: 10,
+    borderRadius: 8,
+    backgroundColor: COLORS.surface,
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: "transparent",
+  },
+  quickAmountBtnActive: {
+    borderColor: COLORS.primary,
+    backgroundColor: COLORS.surfaceLight,
+  },
+  quickAmountText: {
+    color: COLORS.textSecondary,
+    fontSize: 14,
+    fontWeight: "600",
+  },
+  quickAmountTextActive: {
+    color: COLORS.primary,
+  },
+  customAmountRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    marginBottom: 6,
+  },
+  amountInput: {
+    flex: 1,
+    backgroundColor: COLORS.surface,
+    borderRadius: 10,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    color: COLORS.text,
+    fontSize: 18,
+    fontWeight: "bold",
+    borderWidth: 1,
+    borderColor: COLORS.surfaceLight,
+  },
+  amountInputError: {
+    borderColor: COLORS.danger,
+  },
+  solLabel: {
+    color: COLORS.textSecondary,
+    fontSize: 16,
+    fontWeight: "bold",
+  },
+  betError: {
+    color: COLORS.danger,
+    fontSize: 11,
+    marginBottom: 6,
+  },
   betButton: {
     backgroundColor: COLORS.primary,
-    marginTop: 12,
+    marginTop: 8,
     paddingVertical: 16,
     borderRadius: 12,
     alignItems: "center",
+  },
+  betButtonDisabled: {
+    opacity: 0.4,
   },
   betButtonText: {
     color: COLORS.background,
