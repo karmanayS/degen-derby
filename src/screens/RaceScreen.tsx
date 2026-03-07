@@ -54,6 +54,7 @@ export function RaceScreen() {
   const [showBetModal, setShowBetModal] = useState(false);
   const [bets, setBets] = useState<Bet[]>([]);
   const [playerBet, setPlayerBet] = useState<Bet | null>(null);
+  const [walletUsernames, setWalletUsernames] = useState<Record<string, string>>({});
 
   const { positions } = useRaceLive(
     race.status === "live" ? raceId : null
@@ -81,6 +82,22 @@ export function RaceScreen() {
           createdAt: row.created_at,
         }));
         setBets(mapped);
+
+        // Fetch usernames for all wallets
+        const wallets = [...new Set(mapped.map((b) => b.walletAddress))];
+        if (wallets.length > 0) {
+          const { data: users } = await supabase
+            .from("users")
+            .select("wallet_address, username")
+            .in("wallet_address", wallets);
+          if (users) {
+            const map: Record<string, string> = {};
+            for (const u of users) {
+              map[u.wallet_address] = u.username;
+            }
+            setWalletUsernames(map);
+          }
+        }
 
         if (selectedAccount) {
           const myBet = mapped.find(
@@ -329,6 +346,23 @@ export function RaceScreen() {
           </View>
         </View>
 
+        {/* Players list */}
+        {bets.length > 0 && (
+          <View style={styles.playersSection}>
+            <Text style={styles.playersSectionTitle}>PLAYERS</Text>
+            {bets.map((bet, i) => {
+              const username = walletUsernames[bet.walletAddress];
+              const truncatedWallet = `${bet.walletAddress.slice(0, 4)}...${bet.walletAddress.slice(-3)}`;
+              return (
+                <View key={bet.id || i} style={styles.playerRow}>
+                  <Text style={styles.playerUsername}>{username || truncatedWallet}</Text>
+                  <Text style={styles.playerWallet}>{truncatedWallet}</Text>
+                </View>
+              );
+            })}
+          </View>
+        )}
+
         {/* Bet confirmation modal */}
         <BetConfirmModal
           visible={showBetModal}
@@ -554,5 +588,39 @@ const styles = StyleSheet.create({
     color: C.cream,
     fontSize: 13,
     fontWeight: "700",
+  },
+  playersSection: {
+    marginHorizontal: 16,
+    marginTop: 12,
+    backgroundColor: C.surface + "CC",
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: C.border,
+    padding: 14,
+  },
+  playersSectionTitle: {
+    color: C.sandDark,
+    fontSize: 10,
+    fontWeight: "800",
+    letterSpacing: 2,
+    marginBottom: 10,
+  },
+  playerRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingVertical: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: C.border + "55",
+  },
+  playerUsername: {
+    color: C.cream,
+    fontSize: 13,
+    fontWeight: "700",
+  },
+  playerWallet: {
+    color: C.sandLight + "AA",
+    fontSize: 12,
+    fontFamily: "monospace",
   },
 });

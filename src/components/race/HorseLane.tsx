@@ -132,7 +132,8 @@ const styles = StyleSheet.create({
   laneInfo: {
     flexDirection: "row",
     alignItems: "center",
-    width: 72,
+    flexShrink: 0,
+    maxWidth: 100,
   },
   laneNum: {
     color: T.muted,
@@ -149,6 +150,7 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: "700",
     marginLeft: 4,
+    flexShrink: 1,
   },
   trackArea: {
     flex: 1,

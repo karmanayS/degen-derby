@@ -31,6 +31,7 @@ export function ProfileScreen() {
       if (data) {
         setStats({
           walletAddress: data.wallet_address,
+          username: "",
           degenScore: data.degen_score,
           totalRaces: data.total_races,
           wins: data.wins,

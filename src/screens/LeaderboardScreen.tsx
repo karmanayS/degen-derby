@@ -5,76 +5,134 @@ import {
   StyleSheet,
   FlatList,
   RefreshControl,
+  ImageBackground,
 } from "react-native";
+import { LinearGradient } from "expo-linear-gradient";
 import { useLeaderboard } from "../hooks/useLeaderboard";
 import { useAuthorization } from "../utils/useAuthorization";
 import { LeaderboardEntry } from "../types";
-import { COLORS } from "../lib/constants";
+
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const grassTexture = require("../../assets/images/grass-turf.png");
+
+const C = {
+  sand: "#C2A878",
+  sandDark: "#A68A64",
+  sandLight: "#D7C29E",
+  cream: "#EDEDED",
+  brownDark: "#16100A",
+  brownGrain: "#2A1C12",
+  muted: "#6D4C41",
+  gold: "#F0D050",
+  green: "#00FF88",
+};
+
+function LeaderboardRow({
+  entry,
+  rank,
+  isCurrentUser,
+}: {
+  entry: LeaderboardEntry;
+  rank: number;
+  isCurrentUser: boolean;
+}) {
+  const rankColor =
+    rank === 1 ? "#FFD700" : rank === 2 ? "#C0C0C0" : rank === 3 ? "#CD7F32" : C.muted;
+  const isTop3 = rank <= 3;
+
+  const displayName =
+    entry.username ||
+    `${entry.walletAddress.slice(0, 4)}...${entry.walletAddress.slice(-4)}`;
+  const truncatedWallet = `${entry.walletAddress.slice(0, 4)}...${entry.walletAddress.slice(-4)}`;
+
+  return (
+    <View style={[styles.row, isCurrentUser && styles.currentUser, isTop3 && styles.top3Row]}>
+      <View style={styles.rankContainer}>
+        <Text style={[styles.rank, { color: rankColor }]}>#{rank}</Text>
+      </View>
+
+      <View style={styles.info}>
+        <Text style={styles.username} numberOfLines={1}>
+          {displayName}
+        </Text>
+        <Text style={styles.wallet} numberOfLines={1}>
+          {truncatedWallet}
+        </Text>
+      </View>
+
+      <Text style={styles.matches}>{entry.totalRaces}</Text>
+
+      <Text style={styles.earned}>{entry.totalEarned.toFixed(2)} SOL</Text>
+    </View>
+  );
+}
 
 export function LeaderboardScreen() {
   const { entries, loading, refetch } = useLeaderboard();
   const { selectedAccount } = useAuthorization();
-
   const playerAddress = selectedAccount?.publicKey.toBase58();
 
-  const renderEntry = ({
-    item,
-    index,
-  }: {
-    item: LeaderboardEntry;
-    index: number;
-  }) => {
-    const isPlayer = item.walletAddress === playerAddress;
-    const rank = index + 1;
-    const rankDisplay =
-      rank === 1 ? "🥇" : rank === 2 ? "🥈" : rank === 3 ? "🥉" : `#${rank}`;
-
-    const truncated = `${item.walletAddress.slice(0, 4)}...${item.walletAddress.slice(-4)}`;
-
-    return (
-      <View style={[styles.row, isPlayer && styles.playerRow]}>
-        <Text style={styles.rank}>{rankDisplay}</Text>
-        <View style={styles.playerInfo}>
-          <Text style={[styles.address, isPlayer && styles.playerAddress]}>
-            {truncated}
-            {isPlayer ? " (You)" : ""}
-          </Text>
-          <Text style={styles.stats}>
-            {item.wins}W · {item.winStreak} streak
-          </Text>
-        </View>
-        <View style={styles.scoreCol}>
-          <Text style={styles.score}>{item.degenScore}</Text>
-          <Text style={styles.earned}>
-            {item.totalEarned.toFixed(2)} SOL
-          </Text>
-        </View>
-      </View>
-    );
-  };
+  const totalSol = entries.reduce((s, e) => s + e.totalEarned, 0);
+  const totalRaces = entries.reduce((s, e) => s + e.totalRaces, 0);
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>LEADERBOARD</Text>
+    <View style={styles.wrapper}>
+      <ImageBackground
+        source={grassTexture}
+        style={StyleSheet.absoluteFillObject}
+        imageStyle={{ resizeMode: "repeat" }}
+      />
+      <LinearGradient
+        colors={["#0A1A0ECC", "#1B5E2055", "#0A0A0F99", "#2E1808CC", "#4A2E18DD", "#3A2010EE"]}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 0, y: 1 }}
+        style={StyleSheet.absoluteFillObject}
+      />
+      <LinearGradient
+        colors={["#00000000", "#00000000", "#1A100899", "#2E1F14AA"]}
+        locations={[0, 0.5, 0.75, 1]}
+        style={StyleSheet.absoluteFillObject}
+      />
 
-      {/* Header */}
-      <View style={styles.headerRow}>
-        <Text style={[styles.headerText, { width: 40 }]}>#</Text>
-        <Text style={[styles.headerText, { flex: 1 }]}>PLAYER</Text>
-        <Text style={[styles.headerText, { textAlign: "right" }]}>
-          SCORE
-        </Text>
+      <View style={styles.header}>
+        <View style={styles.headerStat}>
+          <Text style={styles.headerStatLabel}>PLAYERS</Text>
+          <Text style={styles.headerStatValue}>{entries.length}</Text>
+        </View>
+        <View style={styles.headerDivider} />
+        <View style={styles.headerStat}>
+          <Text style={styles.headerStatLabel}>TOTAL SOL</Text>
+          <Text style={styles.headerStatValue}>{totalSol.toFixed(1)}</Text>
+        </View>
+        <View style={styles.headerDivider} />
+        <View style={styles.headerStat}>
+          <Text style={styles.headerStatLabel}>RACES</Text>
+          <Text style={styles.headerStatValue}>{totalRaces}</Text>
+        </View>
+      </View>
+
+      <View style={styles.colHeaders}>
+        <Text style={[styles.colHeader, { width: 36, textAlign: "center" }]}>RANK</Text>
+        <Text style={[styles.colHeader, { flex: 1, marginLeft: 14 }]}>PLAYER</Text>
+        <Text style={[styles.colHeader, { width: 46, textAlign: "center" }]}>RACES</Text>
+        <Text style={[styles.colHeader, { width: 70, textAlign: "right" }]}>WON</Text>
       </View>
 
       <FlatList
         data={entries}
-        renderItem={renderEntry}
         keyExtractor={(item) => item.walletAddress}
+        renderItem={({ item, index }) => (
+          <LeaderboardRow
+            entry={item}
+            rank={index + 1}
+            isCurrentUser={item.walletAddress === playerAddress}
+          />
+        )}
         refreshControl={
           <RefreshControl
             refreshing={loading}
             onRefresh={refetch}
-            tintColor={COLORS.primary}
+            tintColor={C.green}
           />
         }
         ListEmptyComponent={
@@ -91,29 +149,57 @@ export function LeaderboardScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: {
+  wrapper: {
     flex: 1,
-    backgroundColor: COLORS.background,
+    backgroundColor: "#0A1A0E",
   },
-  title: {
-    color: COLORS.text,
-    fontSize: 22,
-    fontWeight: "900",
-    letterSpacing: 2,
-    textAlign: "center",
-    paddingVertical: 16,
-  },
-  headerRow: {
+  header: {
     flexDirection: "row",
-    paddingHorizontal: 16,
-    paddingBottom: 8,
-    borderBottomWidth: 1,
-    borderBottomColor: COLORS.surface,
+    alignItems: "center",
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    marginHorizontal: 16,
+    marginTop: 12,
+    marginBottom: 8,
+    backgroundColor: C.sand + "18",
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: C.sand + "33",
   },
-  headerText: {
-    color: COLORS.textMuted,
-    fontSize: 10,
-    fontWeight: "600",
+  headerStat: {
+    flex: 1,
+    alignItems: "center",
+  },
+  headerDivider: {
+    width: 1,
+    height: 24,
+    backgroundColor: C.sand + "33",
+    marginHorizontal: 4,
+  },
+  headerStatLabel: {
+    color: C.sandDark,
+    fontSize: 8,
+    fontWeight: "700",
+    letterSpacing: 1,
+    marginBottom: 2,
+  },
+  headerStatValue: {
+    color: C.cream,
+    fontSize: 14,
+    fontWeight: "900",
+    fontVariant: ["tabular-nums"],
+  },
+  colHeaders: {
+    flexDirection: "row",
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: C.brownDark + "88",
+  },
+  colHeader: {
+    color: C.sand,
+    fontSize: 9,
+    fontWeight: "700",
     letterSpacing: 1,
   },
   list: {
@@ -122,55 +208,64 @@ const styles = StyleSheet.create({
   row: {
     flexDirection: "row",
     alignItems: "center",
-    paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingVertical: 11,
+    paddingHorizontal: 12,
     borderBottomWidth: 1,
-    borderBottomColor: COLORS.surface,
+    borderBottomColor: C.brownDark + "88",
+    backgroundColor: "transparent",
   },
-  playerRow: {
-    backgroundColor: COLORS.surface,
+  top3Row: {
+    backgroundColor: C.brownGrain + "66",
+  },
+  currentUser: {
+    backgroundColor: C.green + "10",
+    borderLeftWidth: 3,
+    borderLeftColor: C.green,
+  },
+  rankContainer: {
+    width: 36,
+    alignItems: "center",
   },
   rank: {
-    width: 40,
-    fontSize: 14,
-    color: COLORS.textSecondary,
-    fontWeight: "bold",
-  },
-  playerInfo: {
-    flex: 1,
-  },
-  address: {
-    color: COLORS.text,
     fontSize: 13,
-    fontWeight: "600",
+    fontWeight: "900",
   },
-  playerAddress: {
-    color: COLORS.primary,
+  info: {
+    flex: 1,
+    marginLeft: 4,
   },
-  stats: {
-    color: COLORS.textSecondary,
-    fontSize: 11,
-    marginTop: 2,
+  username: {
+    color: C.sandLight,
+    fontSize: 13,
+    fontWeight: "700",
   },
-  scoreCol: {
-    alignItems: "flex-end",
+  wallet: {
+    color: C.muted,
+    fontSize: 10,
+    marginTop: 1,
   },
-  score: {
-    color: COLORS.warning,
-    fontSize: 16,
-    fontWeight: "bold",
+  matches: {
+    color: C.sand,
+    fontSize: 12,
+    fontWeight: "700",
+    width: 46,
+    textAlign: "center",
+    fontVariant: ["tabular-nums"],
   },
   earned: {
-    color: COLORS.textSecondary,
-    fontSize: 11,
-    marginTop: 2,
+    color: C.green,
+    fontSize: 13,
+    fontWeight: "900",
+    width: 70,
+    textAlign: "right",
+    fontVariant: ["tabular-nums"],
   },
   empty: {
     paddingVertical: 60,
     alignItems: "center",
   },
   emptyText: {
-    color: COLORS.textSecondary,
+    color: C.muted,
     fontSize: 14,
   },
 });

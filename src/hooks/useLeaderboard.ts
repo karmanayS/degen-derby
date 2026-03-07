@@ -11,13 +11,28 @@ export function useLeaderboard() {
     const { data, error } = await supabase
       .from("leaderboard")
       .select("*")
-      .order("degen_score", { ascending: false })
-      .limit(50);
+      .order("total_earned", { ascending: false })
+      .limit(10);
 
     if (!error && data) {
+      // Fetch usernames for all wallet addresses
+      const wallets = data.map((row: any) => row.wallet_address);
+      const { data: usersData } = await supabase
+        .from("users")
+        .select("wallet_address, username")
+        .in("wallet_address", wallets);
+
+      const usernameMap: Record<string, string> = {};
+      if (usersData) {
+        for (const u of usersData) {
+          usernameMap[u.wallet_address] = u.username;
+        }
+      }
+
       setEntries(
         data.map((row: any) => ({
           walletAddress: row.wallet_address,
+          username: usernameMap[row.wallet_address] ?? "",
           degenScore: row.degen_score,
           totalRaces: row.total_races,
           wins: row.wins,

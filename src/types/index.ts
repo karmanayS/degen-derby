@@ -34,6 +34,7 @@ export interface Bet {
 
 export interface LeaderboardEntry {
   walletAddress: string;
+  username: string;
   degenScore: number;
   totalRaces: number;
   wins: number;
