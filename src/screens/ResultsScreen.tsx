@@ -49,6 +49,7 @@ export function ResultsScreen() {
   const [rankedCoins, setRankedCoins] = useState<RankedCoin[]>([]);
   const [userPick, setUserPick] = useState<string | null>(null);
   const [userPayout, setUserPayout] = useState<number>(0);
+  const [claimed, setClaimed] = useState(false);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -80,13 +81,14 @@ export function ResultsScreen() {
         const wallet = selectedAccount.publicKey.toBase58();
         const { data: betData } = await supabase
           .from("bets")
-          .select("picked_coin, payout")
+          .select("id, picked_coin, payout, claimed")
           .eq("race_id", raceId)
           .eq("wallet_address", wallet)
           .limit(1);
         if (betData && betData.length > 0) {
           setUserPick(betData[0].picked_coin);
           setUserPayout(betData[0].payout ?? 0);
+          setClaimed(betData[0].claimed ?? false);
         }
       }
 
@@ -137,6 +139,32 @@ export function ResultsScreen() {
 
     fetchData();
   }, [raceId, selectedAccount]);
+
+  // Poll claimed status until payout is confirmed
+  useEffect(() => {
+    if (claimed || !selectedAccount) return;
+
+    const wallet = selectedAccount.publicKey.toBase58();
+    const poll = async () => {
+      const { data } = await supabase
+        .from("bets")
+        .select("claimed, payout")
+        .eq("race_id", raceId)
+        .eq("wallet_address", wallet)
+        .limit(1);
+      if (data && data.length > 0) {
+        if (data[0].payout && data[0].payout > 0) {
+          setUserPayout(data[0].payout);
+        }
+        if (data[0].claimed) {
+          setClaimed(true);
+        }
+      }
+    };
+
+    const interval = setInterval(poll, 3000);
+    return () => clearInterval(interval);
+  }, [claimed, selectedAccount, raceId]);
 
   if (!race || rankedCoins.length === 0) {
     return (
@@ -195,7 +223,14 @@ export function ResultsScreen() {
               {didWin ? "Congratulations!" : "Better luck next time"}
             </Text>
             {didWin ? (
-              <Text style={styles.payoutText}>You won {userPayout.toFixed(2)} SOL</Text>
+              <>
+                <Text style={styles.payoutText}>You won {userPayout.toFixed(4)} SOL</Text>
+                {claimed ? (
+                  <Text style={styles.claimedText}>Payout sent to your wallet</Text>
+                ) : userPayout > 0 ? (
+                  <Text style={styles.pendingText}>Payout processing...</Text>
+                ) : null}
+              </>
             ) : (
               <Text style={styles.pickText}>You picked {userPick}</Text>
             )}
@@ -404,6 +439,20 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: "800",
     fontVariant: ["tabular-nums"],
+  },
+  pendingText: {
+    color: C.gold,
+    fontSize: 13,
+    fontWeight: "700",
+    marginTop: 8,
+    letterSpacing: 1,
+  },
+  claimedText: {
+    color: C.green,
+    fontSize: 13,
+    fontWeight: "700",
+    marginTop: 8,
+    letterSpacing: 1,
   },
   nextBtn: {
     margin: 16,

@@ -1,18 +1,9 @@
 // Supabase Edge Function: settle-race
 // Called when a race's end_time is reached
-// Determines winner, calculates payouts, sends SOL to winners, updates all tables
+// Determines winner, calculates payouts, updates all tables
+// On-chain SOL transfers happen via claim-payout (user-initiated)
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import {
-  Connection,
-  Keypair,
-  PublicKey,
-  SystemProgram,
-  Transaction,
-  sendAndConfirmTransaction,
-  LAMPORTS_PER_SOL,
-} from "https://esm.sh/@solana/web3.js@1.95.3";
-import bs58 from "https://esm.sh/bs58@5.0.0";
 
 const DEXSCREENER_BASE = "https://api.dexscreener.com";
 const HOUSE_CUT_PERCENT = 5;
@@ -51,7 +42,6 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Fetch the race
     const { data: race, error: raceError } = await supabase
       .from("races")
       .select("*")
@@ -86,10 +76,7 @@ Deno.serve(async (req) => {
           ? ((finalPrice - coin.startPrice) / coin.startPrice) * 100
           : 0;
 
-      updatedCoins.push({
-        ...coin,
-        endPrice: finalPrice,
-      });
+      updatedCoins.push({ ...coin, endPrice: finalPrice });
 
       if (percentChange > maxChange) {
         maxChange = percentChange;
@@ -106,52 +93,22 @@ Deno.serve(async (req) => {
     const allBets = bets ?? [];
 
     // 3. Calculate payouts (parimutuel)
-    const totalPool = allBets.reduce((sum: number, b: any) => sum + b.amount, 0);
+    const totalPool = allBets.reduce((sum: number, b: any) => sum + Number(b.amount), 0);
     const houseCut = totalPool * (HOUSE_CUT_PERCENT / 100);
     const winnerPool = totalPool - houseCut;
 
     const winningBets = allBets.filter((b: any) => b.picked_coin === winnerSymbol);
     const totalWinningBets = winningBets.reduce(
-      (sum: number, b: any) => sum + b.amount,
-      0
+      (sum: number, b: any) => sum + Number(b.amount), 0
     );
 
-    // 4. Send SOL payouts to winners
-    const payouts: { walletAddress: string; payout: number; betId: string }[] = [];
+    // 4. Record payout amounts (no on-chain transfer — users claim via claim-payout)
+    const payouts: { betId: string; payout: number }[] = [];
 
     if (winningBets.length > 0 && totalWinningBets > 0) {
-      const housePrivateKey = Deno.env.get("HOUSE_WALLET_PRIVATE_KEY");
-      const rpcUrl = Deno.env.get("SOLANA_RPC_URL") ?? "https://api.devnet.solana.com";
-
-      if (housePrivateKey) {
-        const connection = new Connection(rpcUrl, "confirmed");
-        const houseKeypair = Keypair.fromSecretKey(bs58.decode(housePrivateKey));
-
-        for (const bet of winningBets) {
-          const payout = (bet.amount / totalWinningBets) * winnerPool;
-          payouts.push({
-            walletAddress: bet.wallet_address,
-            payout,
-            betId: bet.id,
-          });
-
-          // Send SOL payout
-          try {
-            const tx = new Transaction().add(
-              SystemProgram.transfer({
-                fromPubkey: houseKeypair.publicKey,
-                toPubkey: new PublicKey(bet.wallet_address),
-                lamports: Math.round(payout * LAMPORTS_PER_SOL),
-              })
-            );
-
-            await sendAndConfirmTransaction(connection, tx, [houseKeypair]);
-          } catch (err) {
-            console.error(`Payout failed for ${bet.wallet_address}:`, err);
-            // Record the payout amount even if transfer fails
-            // Can be retried manually
-          }
-        }
+      for (const bet of winningBets) {
+        const payout = (Number(bet.amount) / totalWinningBets) * winnerPool;
+        payouts.push({ betId: bet.id, payout });
       }
     }
 
