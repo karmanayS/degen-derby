@@ -12,7 +12,7 @@ import {
   sendAndConfirmTransaction,
   LAMPORTS_PER_SOL,
 } from "https://esm.sh/@solana/web3.js@1.95.3";
-import { decode as decodeBase58 } from "https://esm.sh/bs58@6.0.0";
+import bs58 from "https://esm.sh/bs58@5.0.0";
 
 const DEXSCREENER_BASE = "https://api.dexscreener.com";
 const HOUSE_CUT_PERCENT = 5;
@@ -125,7 +125,7 @@ Deno.serve(async (req) => {
 
       if (housePrivateKey) {
         const connection = new Connection(rpcUrl, "confirmed");
-        const houseKeypair = Keypair.fromSecretKey(decodeBase58(housePrivateKey));
+        const houseKeypair = Keypair.fromSecretKey(bs58.decode(housePrivateKey));
 
         for (const bet of winningBets) {
           const payout = (bet.amount / totalWinningBets) * winnerPool;
