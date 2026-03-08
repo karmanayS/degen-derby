@@ -2,7 +2,7 @@ import { PublicKey } from "@solana/web3.js";
 
 // House wallet that receives entry fees and sends payouts
 export const HOUSE_WALLET = new PublicKey(
-  "E5GgmF6PDNQPAWwLbBHoy75eX7U5bSjT2yDpbHv5qg6V"
+  "J9kE5c21Y1kLhoXiS6nG9fkfMX9ckkdL2my4k6nfnR8u"
 );
 
 // SKR token mint address on Solana mainnet

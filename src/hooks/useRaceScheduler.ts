@@ -6,6 +6,7 @@
 
 import { useEffect, useRef } from "react";
 import { supabase } from "../lib/supabase";
+import Config from "../lib/config";
 import { getMultipleTokenPrices, getTrendingTokens } from "../lib/dexscreener";
 import { BET_LIMITS, FALLBACK_COINS } from "../lib/constants";
 import { CoinPrice } from "../types";
@@ -207,6 +208,23 @@ async function transitionRaceStatuses() {
         .from("races")
         .update({ status: "finished", winning_coin: winningCoin })
         .eq("id", race.id);
+
+      // Trigger settle-race edge function for payouts
+      try {
+        await fetch(
+          `${Config.SUPABASE_URL}/functions/v1/settle-race`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${Config.SUPABASE_ANON_KEY}`,
+            },
+            body: JSON.stringify({ raceId: race.id }),
+          }
+        );
+      } catch (err) {
+        console.warn(`Failed to settle race ${race.id}:`, err);
+      }
 
       // Clean up in-memory store
       livePricesStore.delete(race.id);
