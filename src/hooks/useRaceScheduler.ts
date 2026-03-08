@@ -90,16 +90,15 @@ async function createRaces() {
 
     const raceSets = pickRaceSets(coins, NUM_RACES);
 
-    const allAddresses = [...new Set(raceSets.flat().map((c) => c.address))];
-    const prices = await getMultipleTokenPrices(allAddresses);
+    const trendingAddresses = [...new Set(raceSets.flat().map((c) => c.address))];
+    const fallbackAddresses = FALLBACK_COINS.map((f) => f.address);
+    const allAddresses = [...new Set([...trendingAddresses, ...fallbackAddresses])];
+    const allPrices = await getMultipleTokenPrices(allAddresses);
 
     const startTime = new Date(Date.now() + LOBBY_DURATION_S * 1000);
     const endTime = new Date(
       startTime.getTime() + RACE_DURATION_S * 1000
     );
-
-    const fallbackAddresses = FALLBACK_COINS.map((f) => f.address);
-    const fallbackPrices = await getMultipleTokenPrices(fallbackAddresses);
 
     const raceRows = raceSets.map((selected) => {
       const raceCoins: {
@@ -114,7 +113,7 @@ async function createRaces() {
       const usedAddresses = new Set<string>();
 
       for (const c of selected) {
-        const priceData = prices.find((p) => p.address === c.address);
+        const priceData = allPrices.find((p) => p.address === c.address);
         if (priceData && priceData.price > 0) {
           raceCoins.push({
             address: c.address,
@@ -131,7 +130,7 @@ async function createRaces() {
       for (const fb of FALLBACK_COINS) {
         if (raceCoins.length >= 5) break;
         if (usedAddresses.has(fb.address)) continue;
-        const fbPrice = fallbackPrices.find((p) => p.address === fb.address);
+        const fbPrice = allPrices.find((p) => p.address === fb.address);
         if (!fbPrice || fbPrice.price <= 0) continue;
         raceCoins.push({
           address: fb.address,

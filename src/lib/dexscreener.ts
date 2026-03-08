@@ -151,24 +151,23 @@ export async function getTrendingTokens(): Promise<
       return true;
     });
 
-    // Fetch details for top 20
+    // Fetch details for top 20 in a single batch call
     const top = solanaTokens.slice(0, 20);
-    const detailed = await Promise.all(
-      top.map(async (t) => {
-        const price = await getTokenPrice(t.tokenAddress);
-        if (!price) return null;
-        return {
-          address: price.address,
-          symbol: price.symbol,
-          name: price.name,
-          logo: price.logo || t.icon || "",
-        };
-      })
-    );
+    const topAddresses = top.map((t) => t.tokenAddress);
+    const batchPrices = await getMultipleTokenPrices(topAddresses);
 
-    const results = detailed.filter(
-      (d): d is NonNullable<typeof d> => d !== null
-    );
+    // Build icon lookup from boosted data
+    const iconByAddress = new Map<string, string>();
+    for (const t of top) {
+      if (t.icon) iconByAddress.set(t.tokenAddress, t.icon);
+    }
+
+    const results = batchPrices.map((p) => ({
+      address: p.address,
+      symbol: p.symbol,
+      name: p.name,
+      logo: p.logo || iconByAddress.get(p.address) || "",
+    }));
 
     // If we got fewer than 5, pad with fallbacks
     if (results.length < 5) {
