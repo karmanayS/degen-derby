@@ -1,10 +1,14 @@
 // Supabase Edge Function: create-race
-// Triggered via cron (every 15 min) or manually via HTTP POST
-// Picks 5 trending memecoins, records start prices, creates a new race
+// Called by pg_cron every 6 minutes
+// Checks if any upcoming/live races exist — if not, creates 5 new races
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const DEXSCREENER_BASE = "https://api.dexscreener.com";
+const LOBBY_DURATION_S = 60;
+const RACE_DURATION_S = 300;
+const NUM_RACES = 5;
+const ENTRY_FEE = 0.01;
 
 const FALLBACK_COINS = [
   { address: "DezXAZ8z7PnrnRJjz3wXBoRgixCa6xjnB7YaB1pPB263", symbol: "BONK", name: "Bonk" },
@@ -25,29 +29,47 @@ interface TokenPrice {
   logo: string;
 }
 
-async function getTokenPrice(address: string): Promise<TokenPrice | null> {
-  try {
-    const res = await fetch(`${DEXSCREENER_BASE}/latest/dex/tokens/${address}`);
-    const data = await res.json();
-    if (!data.pairs || data.pairs.length === 0) return null;
-
-    const solanaPairs = data.pairs.filter((p: any) => p.chainId === "solana");
-    if (solanaPairs.length === 0) return null;
-
-    const best = solanaPairs.sort(
-      (a: any, b: any) => (b.liquidity?.usd ?? 0) - (a.liquidity?.usd ?? 0)
-    )[0];
-
-    return {
-      address: best.baseToken.address,
-      symbol: best.baseToken.symbol,
-      name: best.baseToken.name,
-      price: parseFloat(best.priceUsd),
-      logo: best.info?.imageUrl ?? "",
-    };
-  } catch {
-    return null;
+async function getBatchPrices(addresses: string[]): Promise<TokenPrice[]> {
+  const results: TokenPrice[] = [];
+  // DexScreener supports comma-separated addresses (max 30)
+  const chunks: string[][] = [];
+  for (let i = 0; i < addresses.length; i += 30) {
+    chunks.push(addresses.slice(i, i + 30));
   }
+
+  for (const chunk of chunks) {
+    try {
+      const res = await fetch(
+        `${DEXSCREENER_BASE}/latest/dex/tokens/${chunk.join(",")}`
+      );
+      const data = await res.json();
+      if (!data.pairs || data.pairs.length === 0) continue;
+
+      const solanaPairs = data.pairs.filter((p: any) => p.chainId === "solana");
+      const bestByToken = new Map<string, any>();
+      for (const pair of solanaPairs) {
+        const addr = pair.baseToken.address;
+        const existing = bestByToken.get(addr);
+        if (!existing || (pair.liquidity?.usd ?? 0) > (existing.liquidity?.usd ?? 0)) {
+          bestByToken.set(addr, pair);
+        }
+      }
+
+      for (const [, pair] of bestByToken) {
+        results.push({
+          address: pair.baseToken.address,
+          symbol: pair.baseToken.symbol,
+          name: pair.baseToken.name,
+          price: parseFloat(pair.priceUsd),
+          logo: pair.info?.imageUrl ?? "",
+        });
+      }
+    } catch {
+      // skip chunk on error
+    }
+  }
+
+  return results;
 }
 
 async function getTrendingCoins(): Promise<TokenPrice[]> {
@@ -62,18 +84,21 @@ async function getTrendingCoins(): Promise<TokenPrice[]> {
       return true;
     });
 
-    const top = solanaTokens.slice(0, 15);
-    const results: TokenPrice[] = [];
+    const topAddresses = solanaTokens.slice(0, 20).map((t: any) => t.tokenAddress);
+    const prices = await getBatchPrices(topAddresses);
 
-    for (const t of top) {
-      const price = await getTokenPrice(t.tokenAddress);
-      if (price && price.price > 0) {
-        results.push(price);
-      }
-      if (results.length >= 8) break;
+    // Build icon lookup from boosted data
+    const iconByAddress = new Map<string, string>();
+    for (const t of solanaTokens.slice(0, 20)) {
+      if (t.icon) iconByAddress.set(t.tokenAddress, t.icon);
     }
 
-    return results;
+    return prices
+      .filter((p) => p.price > 0)
+      .map((p) => ({
+        ...p,
+        logo: p.logo || iconByAddress.get(p.address) || "",
+      }));
   } catch {
     return [];
   }
@@ -84,45 +109,60 @@ function pickRandom<T>(arr: T[], n: number): T[] {
   return shuffled.slice(0, n);
 }
 
-Deno.serve(async (req) => {
+function pickRaceSets(pool: TokenPrice[], numRaces: number): TokenPrice[][] {
+  const sets: TokenPrice[][] = [];
+  for (let i = 0; i < numRaces; i++) {
+    let attempts = 0;
+    let selected = pickRandom(pool, 5);
+    while (attempts < 10) {
+      const key = selected.map((c) => c.address).sort().join(",");
+      const isDuplicate = sets.some(
+        (s) => s.map((c) => c.address).sort().join(",") === key
+      );
+      if (!isDuplicate) break;
+      selected = pickRandom(pool, 5);
+      attempts++;
+    }
+    sets.push(selected);
+  }
+  return sets;
+}
+
+Deno.serve(async (_req) => {
   try {
     const supabase = createClient(
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
 
-    // Parse optional params from request body
-    let raceDuration = 300; // default 5 minutes
-    let entryFee = 0.05;
-    let isVip = false;
+    // Check if any upcoming or live races already exist
+    const { data: activeRaces } = await supabase
+      .from("races")
+      .select("id")
+      .in("status", ["upcoming", "live"])
+      .limit(1);
 
-    if (req.method === "POST") {
-      try {
-        const body = await req.json();
-        if (body.duration) raceDuration = body.duration;
-        if (body.entryFee) entryFee = body.entryFee;
-        if (body.isVip) isVip = body.isVip;
-      } catch {
-        // No body or invalid JSON — use defaults
-      }
+    if (activeRaces && activeRaces.length > 0) {
+      return new Response(
+        JSON.stringify({ message: "Active races already exist, skipping" }),
+        { status: 200, headers: { "Content-Type": "application/json" } }
+      );
     }
 
     // Get trending coins
     let coins = await getTrendingCoins();
 
-    // Fallback to curated list if trending returns too few
+    // Pad with fallbacks if needed
     if (coins.length < 5) {
-      const fallbackPrices: TokenPrice[] = [];
-      for (const fc of FALLBACK_COINS) {
-        const price = await getTokenPrice(fc.address);
-        if (price) fallbackPrices.push(price);
-        if (fallbackPrices.length + coins.length >= 8) break;
-      }
-      // Merge, deduplicating by address
       const existingAddresses = new Set(coins.map((c) => c.address));
+      const fallbackAddresses = FALLBACK_COINS
+        .filter((f) => !existingAddresses.has(f.address))
+        .map((f) => f.address);
+      const fallbackPrices = await getBatchPrices(fallbackAddresses);
       for (const fp of fallbackPrices) {
-        if (!existingAddresses.has(fp.address)) {
+        if (fp.price > 0 && !existingAddresses.has(fp.address)) {
           coins.push(fp);
+          existingAddresses.add(fp.address);
         }
       }
     }
@@ -134,34 +174,42 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Pick 5 random coins
-    const selectedCoins = pickRandom(coins, 5);
+    const raceSets = pickRaceSets(coins, NUM_RACES);
 
-    // Build coins JSONB for the race
-    const raceCoins = selectedCoins.map((c) => ({
-      address: c.address,
-      name: c.name,
-      symbol: c.symbol,
-      logo: c.logo,
-      startPrice: c.price,
-      endPrice: null,
-    }));
+    const startTime = new Date(Date.now() + LOBBY_DURATION_S * 1000);
+    const endTime = new Date(startTime.getTime() + RACE_DURATION_S * 1000);
 
-    // Set start time to 2 minutes from now (lobby time)
-    const startTime = new Date(Date.now() + 2 * 60 * 1000);
-    const endTime = new Date(startTime.getTime() + raceDuration * 1000);
+    const raceRows = raceSets.map((selected) => {
+      const raceCoins = selected.map((c) => ({
+        address: c.address,
+        name: c.name,
+        symbol: c.symbol,
+        logo: c.logo,
+        startPrice: c.price,
+        endPrice: null,
+      }));
 
-    // Insert the race
-    const { data, error } = await supabase.from("races").insert({
-      coins: raceCoins,
-      entry_fee: entryFee,
-      race_duration: raceDuration,
-      start_time: startTime.toISOString(),
-      end_time: endTime.toISOString(),
-      status: "upcoming",
-      total_pot: 0,
-      is_vip: isVip,
-    }).select().single();
+      return {
+        coins: raceCoins,
+        entry_fee: ENTRY_FEE,
+        race_duration: RACE_DURATION_S,
+        start_time: startTime.toISOString(),
+        end_time: endTime.toISOString(),
+        status: "upcoming" as const,
+        total_pot: 0,
+        is_vip: false,
+      };
+    });
+
+    const validRaces = raceRows.filter((r) => r.coins.length === 5);
+    if (validRaces.length === 0) {
+      return new Response(
+        JSON.stringify({ error: "No valid races could be created" }),
+        { status: 500, headers: { "Content-Type": "application/json" } }
+      );
+    }
+
+    const { error } = await supabase.from("races").insert(validRaces);
 
     if (error) {
       return new Response(
@@ -171,7 +219,7 @@ Deno.serve(async (req) => {
     }
 
     return new Response(
-      JSON.stringify({ success: true, race: data }),
+      JSON.stringify({ success: true, racesCreated: validRaces.length }),
       { status: 200, headers: { "Content-Type": "application/json" } }
     );
   } catch (err) {
