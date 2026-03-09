@@ -7,7 +7,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 const DEXSCREENER_BASE = "https://api.dexscreener.com";
 const LOBBY_DURATION_S = 60;
 const RACE_DURATION_S = 300;
-const NUM_RACES = 5;
+const NUM_RACES = 1;
 const ENTRY_FEE = 0.01;
 
 const FALLBACK_COINS = [
