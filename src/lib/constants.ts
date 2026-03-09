@@ -7,7 +7,7 @@ export const HOUSE_WALLET = new PublicKey(
 
 // SKR token mint address on Solana mainnet
 export const SKR_MINT = new PublicKey(
-  "SKRMoowmPFFrGLfSwR2md6K7MjDYR2r7ZVByudDk9nK"
+  "SKRbvo6Gf7GondiT3BbTfuRDPqLWei4j2Qy2NPGZhW3"
 );
 
 // Race configuration
