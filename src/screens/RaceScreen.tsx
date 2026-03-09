@@ -20,6 +20,7 @@ import { supabase } from "../lib/supabase";
 import { calculateOdds } from "../lib/race-engine";
 import { Race, Bet } from "../types";
 import { BET_LIMITS } from "../lib/constants";
+import { useSkrStatus } from "../hooks/useSkrStatus";
 
 const C = {
   green: "#2E7D32",
@@ -55,6 +56,8 @@ export function RaceScreen() {
   const [bets, setBets] = useState<Bet[]>([]);
   const [playerBet, setPlayerBet] = useState<Bet | null>(null);
   const [walletUsernames, setWalletUsernames] = useState<Record<string, string>>({});
+  const { hasSkr } = useSkrStatus();
+  const maxBet = hasSkr ? BET_LIMITS.SKR_MAX : BET_LIMITS.MAX;
 
   const { positions } = useRaceLive(
     race.status === "live" ? raceId : null
@@ -175,7 +178,7 @@ export function RaceScreen() {
 
   const parsedAmount = parseFloat(betAmount) || 0;
   const isValidBet =
-    parsedAmount >= BET_LIMITS.MIN && parsedAmount <= BET_LIMITS.MAX;
+    parsedAmount >= BET_LIMITS.MIN && parsedAmount <= maxBet;
 
   const handleConfirmBet = async () => {
     if (!selectedCoin || !isValidBet) return;
@@ -328,7 +331,7 @@ export function RaceScreen() {
           </View>
           <View style={styles.infoRow}>
             <Text style={styles.infoLabel}>Max Bet</Text>
-            <Text style={styles.infoValue}>{BET_LIMITS.MAX} SOL</Text>
+            <Text style={styles.infoValue}>{maxBet} SOL</Text>
           </View>
           <View style={styles.infoRow}>
             <Text style={styles.infoLabel}>Total Pot</Text>

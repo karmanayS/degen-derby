@@ -15,7 +15,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useCallback, useMemo } from "react";
 
 const CHAIN = "solana";
-const CLUSTER = "devnet";
+const CLUSTER = "mainnet-beta";
 const CHAIN_IDENTIFIER = `${CHAIN}:${CLUSTER}`;
 
 export type Account = Readonly<{
@@ -75,7 +75,7 @@ function cacheReviver(key: string, value: any) {
   }
 }
 
-const AUTHORIZATION_STORAGE_KEY = "authorization-cache";
+const AUTHORIZATION_STORAGE_KEY = `authorization-cache-${CLUSTER}`;
 
 async function fetchAuthorization(): Promise<WalletAuthorization | null> {
   const cacheFetchResult = await AsyncStorage.getItem(

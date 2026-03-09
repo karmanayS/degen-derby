@@ -129,7 +129,7 @@ export function RaceCard({ race, onPress }: RaceCardProps) {
 
       <View style={styles.coinsRow}>
         {previewCoins.map((coin) => (
-          <View key={coin.symbol} style={styles.coinItem}>
+          <View key={coin.address} style={styles.coinItem}>
             <View style={styles.coinRing}>
               {coin.logo ? (
                 <Image source={{ uri: coin.logo }} style={styles.coinLogo} />

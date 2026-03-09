@@ -68,7 +68,7 @@ Deno.serve(async (req) => {
 
     // Send SOL
     const housePrivateKey = Deno.env.get("HOUSE_WALLET_PRIVATE_KEY");
-    const rpcUrl = Deno.env.get("SOLANA_RPC_URL") ?? "https://api.devnet.solana.com";
+    const rpcUrl = Deno.env.get("SOLANA_RPC_URL") ?? "https://api.mainnet-beta.solana.com";
 
     if (!housePrivateKey) {
       return new Response(

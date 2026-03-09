@@ -16,6 +16,7 @@ import Animated, {
   useAnimatedStyle,
   withRepeat,
   withTiming,
+  withDelay,
   Easing,
 } from "react-native-reanimated";
 import { useNavigation } from "@react-navigation/native";
@@ -141,6 +142,18 @@ const GrassTurfBackground = memo(function GrassTurfBackground() {
   );
 });
 
+function BlinkingDot({ delay }: { delay: number }) {
+  const opacity = useSharedValue(0.2);
+  useEffect(() => {
+    opacity.value = withDelay(
+      delay,
+      withRepeat(withTiming(1, { duration: 600, easing: Easing.inOut(Easing.sin) }), -1, true)
+    );
+  }, []);
+  const style = useAnimatedStyle(() => ({ opacity: opacity.value }));
+  return <Animated.View style={[styles.dot, style]} />;
+}
+
 export function LobbyScreen() {
   const navigation = useNavigation<any>();
   const { races, loading, refetch } = useRaces();
@@ -152,6 +165,8 @@ export function LobbyScreen() {
     if (filter === "all") return true;
     return r.status === filter;
   });
+
+  const noActiveRaces = races.length > 0 && races.every((r) => r.status === "finished");
 
   const handleRacePress = (race: Race) => {
     if (race.status === "finished") {
@@ -188,6 +203,17 @@ export function LobbyScreen() {
       {loading ? (
         <ActivityIndicator color={T.gold} style={{ marginTop: 40 }} />
       ) : (
+        <>
+        {noActiveRaces && (
+          <View style={styles.banner}>
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
+              <Text style={styles.bannerText}>Races will start soon</Text>
+              <BlinkingDot delay={0} />
+              <BlinkingDot delay={200} />
+              <BlinkingDot delay={400} />
+            </View>
+          </View>
+        )}
         <FlatList
           data={filteredRaces}
           keyExtractor={(item) => item.id}
@@ -207,11 +233,16 @@ export function LobbyScreen() {
           }
           ListEmptyComponent={
             <View style={styles.empty}>
-              <Text style={styles.emptyText}>No races found</Text>
+              <Text style={styles.emptyText}>
+                {races.length > 0 && races.every((r) => r.status === "finished")
+                  ? "Races will start soon"
+                  : "No races found"}
+              </Text>
               <Text style={styles.emptySubtext}>Pull down to refresh</Text>
             </View>
           }
         />
+        </>
       )}
     </SafeAreaView>
   );
@@ -260,6 +291,28 @@ const styles = StyleSheet.create({
   filterTextActive: {
     color: T.gold,
     fontWeight: "800",
+  },
+  banner: {
+    alignItems: "center" as const,
+    paddingVertical: 12,
+    marginHorizontal: 14,
+    marginTop: 4,
+    borderRadius: 10,
+    backgroundColor: T.gold + "18",
+    borderWidth: 1,
+    borderColor: T.gold + "44",
+    zIndex: 1,
+  },
+  bannerText: {
+    color: T.gold,
+    fontSize: 13,
+    fontWeight: "700" as const,
+  },
+  dot: {
+    width: 5,
+    height: 5,
+    borderRadius: 2.5,
+    backgroundColor: T.gold,
   },
   list: {
     paddingBottom: 24,

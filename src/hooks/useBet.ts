@@ -8,7 +8,7 @@ import { supabase } from "../lib/supabase";
 export function useBet() {
   const { connection } = useConnection();
   const { selectedAccount } = useAuthorization();
-  const { signAndSendTransaction } = useMobileWallet();
+  const { signTransaction } = useMobileWallet();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -36,10 +36,20 @@ export function useBet() {
       transaction.recentBlockhash = blockhash;
       transaction.feePayer = selectedAccount.publicKey;
 
-      const txSignature = await signAndSendTransaction(
-        transaction,
-        lastValidBlockHeight
+      const signedTx = await signTransaction(transaction);
+      const txSignature = await connection.sendRawTransaction(
+        signedTx.serialize()
       );
+
+      // Wait for on-chain confirmation before recording the bet
+      const confirmation = await connection.confirmTransaction(
+        { signature: txSignature, blockhash, lastValidBlockHeight },
+        "confirmed"
+      );
+
+      if (confirmation.value.err) {
+        throw new Error("Transaction failed on-chain");
+      }
 
       const { error: dbError } = await supabase.from("bets").insert({
         race_id: raceId,

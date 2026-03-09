@@ -19,7 +19,7 @@ const path = require("path");
 const SUPABASE_URL = "https://sgibrenfgqozvtpqcmyz.supabase.co";
 const SUPABASE_SERVICE_ROLE_KEY =
   process.env.SUPABASE_SERVICE_ROLE_KEY || "";
-const SOLANA_RPC_URL = process.env.SOLANA_RPC_URL || "https://api.devnet.solana.com";
+const SOLANA_RPC_URL = process.env.SOLANA_RPC_URL || "https://api.mainnet-beta.solana.com";
 const POLL_INTERVAL_MS = 5000; // check every 5 seconds
 
 if (!SUPABASE_SERVICE_ROLE_KEY) {

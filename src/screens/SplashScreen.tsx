@@ -126,50 +126,58 @@ export function SplashScreen() {
     setError(null);
 
     try {
-      const { data: existing } = await supabase
-        .from("users")
-        .select("wallet_address")
-        .eq("username", trimmed)
-        .limit(1);
-
-      if (existing && existing.length > 0) {
-        setError("Username already taken");
-        setLoading(false);
-        return;
-      }
-
+      // Connect wallet first
       const account = await connect();
 
       if (account) {
         const walletAddress = account.publicKey.toBase58();
 
+        // Check if this wallet already has a username (returning user)
         const { data: existingWallet } = await supabase
           .from("users")
           .select("username")
           .eq("wallet_address", walletAddress)
           .limit(1);
 
-        if (!existingWallet || existingWallet.length === 0) {
-          const { error: insertError } = await supabase.from("users").insert({
-            wallet_address: walletAddress,
-            username: trimmed,
-          });
+        if (existingWallet && existingWallet.length > 0) {
+          // Returning user — skip username validation, let them in
+          setLoading(false);
+          return;
+        }
 
-          if (insertError) {
-            if (insertError.message.includes("duplicate")) {
-              setError("Username already taken");
-            } else {
-              setError(insertError.message);
-            }
-            setLoading(false);
-            return;
+        // New user — check if username is taken
+        const { data: existing } = await supabase
+          .from("users")
+          .select("wallet_address")
+          .eq("username", trimmed)
+          .limit(1);
+
+        if (existing && existing.length > 0) {
+          setError("Username already taken");
+          setLoading(false);
+          return;
+        }
+
+        // Insert new user
+        const { error: insertError } = await supabase.from("users").insert({
+          wallet_address: walletAddress,
+          username: trimmed,
+        });
+
+        if (insertError) {
+          if (insertError.message.includes("duplicate")) {
+            setError("Username already taken");
+          } else {
+            setError(insertError.message);
           }
+          setLoading(false);
+          return;
         }
       }
 
       setLoading(false);
     } catch (err: any) {
-      setError(err?.message ?? "Connection failed");
+      setError("Wallet connection failed, try again");
       setLoading(false);
     }
   };

@@ -21,6 +21,7 @@ export const RACE_DURATIONS = {
 export const BET_LIMITS = {
   MIN: 0.01, // SOL
   MAX: 10, // SOL
+  SKR_MAX: 50, // SOL — increased limit for SKR holders
 } as const;
 
 export const HOUSE_CUT_PERCENT = 5; // 5% of pot
