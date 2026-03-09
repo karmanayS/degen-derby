@@ -1,6 +1,7 @@
 // Client-side race lifecycle manager
 // - Transitions race statuses based on time (upcoming -> live -> finished)
-// - Polls prices in memory for live races
+// - Uses PumpPortal WebSocket to detect trades and trigger instant price updates
+// - DexScreener provides USD prices; PumpPortal signals WHEN to re-fetch
 // - Race creation is handled server-side via pg_cron + create-race edge function
 
 import { useEffect, useRef } from "react";
@@ -9,8 +10,11 @@ import Config from "../lib/config";
 import { getMultipleTokenPrices } from "../lib/dexscreener";
 import { CoinPrice } from "../types";
 
-const TICK_INTERVAL_MS = 3000; // check statuses every 3 seconds
-const PRICE_POLL_MS = 1000; // poll prices every second
+const TICK_INTERVAL_MS = 3000;
+const DEXSCREENER_POLL_MS = 3000; // baseline DexScreener poll
+const PUMPPORTAL_WS_URL = "wss://pumpportal.fun/api/data";
+// Minimum ms between DexScreener fetches (rate limit: 60 req/min)
+const MIN_FETCH_INTERVAL_MS = 1500;
 
 // --- In-memory price store ---
 const livePricesStore = new Map<string, CoinPrice[]>();
@@ -30,7 +34,6 @@ export function subscribeLivePrices(
   if (!priceListeners.has(raceId)) priceListeners.set(raceId, new Set());
   priceListeners.get(raceId)!.add(cb);
 
-  // Immediately send current prices if available
   const current = livePricesStore.get(raceId);
   if (current) cb(current);
 
@@ -46,14 +49,12 @@ export function subscribeLivePrices(
 async function transitionRaceStatuses() {
   const now = new Date().toISOString();
 
-  // upcoming -> live
   await supabase
     .from("races")
     .update({ status: "live" })
     .eq("status", "upcoming")
     .lte("start_time", now);
 
-  // live -> finished
   const { data: expiredRaces } = await supabase
     .from("races")
     .select("id")
@@ -62,7 +63,6 @@ async function transitionRaceStatuses() {
 
   if (expiredRaces && expiredRaces.length > 0) {
     for (const race of expiredRaces) {
-      // Write final price snapshot from in-memory store
       const finalPrices = livePricesStore.get(race.id);
       if (finalPrices && finalPrices.length > 0) {
         await supabase.from("race_prices").insert({
@@ -71,7 +71,6 @@ async function transitionRaceStatuses() {
         });
       }
 
-      // Call settle-race edge function for payouts (runs before marking finished)
       try {
         await fetch(
           `${Config.SUPABASE_URL}/functions/v1/settle-race`,
@@ -88,27 +87,57 @@ async function transitionRaceStatuses() {
         console.warn(`Failed to settle race ${race.id}:`, err);
       }
 
-      // Always mark race as finished (fallback in case settle-race fails)
       await supabase
         .from("races")
         .update({ status: "finished" })
         .eq("id", race.id)
         .neq("status", "finished");
 
-      // Clean up in-memory store
       livePricesStore.delete(race.id);
       priceListeners.delete(race.id);
     }
   }
 }
 
-// --- Price polling (in-memory only) ---
-async function pollAllLiveRaces() {
-  const { data: liveRaces } = await supabase
+// --- Cached live races ---
+let cachedLiveRaces: { id: string; coins: any[] }[] | null = null;
+let cacheTimestamp = 0;
+const CACHE_TTL_MS = 3000;
+
+async function getLiveRacesCached() {
+  const now = Date.now();
+  if (cachedLiveRaces && now - cacheTimestamp < CACHE_TTL_MS) {
+    return cachedLiveRaces;
+  }
+  const { data } = await supabase
     .from("races")
     .select("id, coins")
     .eq("status", "live");
+  cachedLiveRaces = data ?? [];
+  cacheTimestamp = now;
+  return cachedLiveRaces;
+}
 
+// --- Price fetching with throttle ---
+let lastFetchTimestamp = 0;
+let fetchPending = false;
+
+async function fetchAndBroadcastPrices() {
+  const now = Date.now();
+  if (now - lastFetchTimestamp < MIN_FETCH_INTERVAL_MS) {
+    // Schedule a deferred fetch if not already pending
+    if (!fetchPending) {
+      fetchPending = true;
+      setTimeout(() => {
+        fetchPending = false;
+        fetchAndBroadcastPrices();
+      }, MIN_FETCH_INTERVAL_MS - (Date.now() - lastFetchTimestamp));
+    }
+    return;
+  }
+  lastFetchTimestamp = now;
+
+  const liveRaces = await getLiveRacesCached();
   if (!liveRaces || liveRaces.length === 0) return;
 
   const allAddresses = new Set<string>();
@@ -117,6 +146,9 @@ async function pollAllLiveRaces() {
       allAddresses.add(coin.address);
     }
   }
+
+  // Subscribe pump.fun tokens to WS (idempotent)
+  subscribeToPumpTokens([...allAddresses]);
 
   const prices = await getMultipleTokenPrices([...allAddresses]);
   if (prices.length === 0) return;
@@ -138,15 +170,101 @@ async function pollAllLiveRaces() {
       };
     });
 
-    // Update in-memory store and notify listeners
     livePricesStore.set(race.id, priceData);
     notifyListeners(race.id, priceData);
   }
 }
 
+// --- PumpPortal WebSocket ---
+// Detects trades in real-time and triggers immediate DexScreener re-fetch
+let pumpWs: WebSocket | null = null;
+let subscribedAddresses = new Set<string>();
+let wsReconnectTimer: ReturnType<typeof setTimeout> | null = null;
+
+function connectPumpPortal() {
+  if (pumpWs && pumpWs.readyState === WebSocket.OPEN) return;
+
+  try {
+    pumpWs = new WebSocket(PUMPPORTAL_WS_URL);
+
+    pumpWs.onopen = () => {
+      console.log("[PumpPortal] Connected");
+      if (subscribedAddresses.size > 0) {
+        pumpWs?.send(
+          JSON.stringify({
+            method: "subscribeTokenTrade",
+            keys: [...subscribedAddresses],
+          })
+        );
+      }
+    };
+
+    pumpWs.onmessage = (event) => {
+      try {
+        const data = JSON.parse(
+          typeof event.data === "string" ? event.data : ""
+        );
+        if (data.txType === "buy" || data.txType === "sell") {
+          // A trade happened - trigger an immediate DexScreener re-fetch
+          // This gets us fresh USD prices within ~1-2s of the on-chain trade
+          fetchAndBroadcastPrices();
+        }
+      } catch {
+        // ignore
+      }
+    };
+
+    pumpWs.onerror = () => {
+      console.warn("[PumpPortal] WebSocket error");
+    };
+
+    pumpWs.onclose = () => {
+      console.log("[PumpPortal] Disconnected, reconnecting in 3s...");
+      pumpWs = null;
+      if (wsReconnectTimer) clearTimeout(wsReconnectTimer);
+      wsReconnectTimer = setTimeout(connectPumpPortal, 3000);
+    };
+  } catch {
+    console.warn("[PumpPortal] Failed to connect");
+  }
+}
+
+function subscribeToPumpTokens(addresses: string[]) {
+  const pumpAddresses = addresses.filter((a) => a.endsWith("pump"));
+  if (pumpAddresses.length === 0) return;
+
+  const newAddresses = pumpAddresses.filter((a) => !subscribedAddresses.has(a));
+  if (newAddresses.length === 0) return;
+
+  for (const a of newAddresses) subscribedAddresses.add(a);
+
+  if (pumpWs && pumpWs.readyState === WebSocket.OPEN) {
+    pumpWs.send(
+      JSON.stringify({
+        method: "subscribeTokenTrade",
+        keys: newAddresses,
+      })
+    );
+  }
+}
+
+function disconnectPumpPortal() {
+  if (wsReconnectTimer) {
+    clearTimeout(wsReconnectTimer);
+    wsReconnectTimer = null;
+  }
+  if (pumpWs) {
+    pumpWs.onclose = null;
+    pumpWs.close();
+    pumpWs = null;
+  }
+  subscribedAddresses.clear();
+}
+
 // --- Main tick ---
 async function tick() {
   await transitionRaceStatuses();
+  await getLiveRacesCached();
 }
 
 export function useRaceScheduler() {
@@ -154,15 +272,24 @@ export function useRaceScheduler() {
   const priceIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   useEffect(() => {
+    // Start PumpPortal WebSocket for trade detection
+    connectPumpPortal();
+
+    // Status transitions
     tick();
     intervalRef.current = setInterval(tick, TICK_INTERVAL_MS);
 
-    pollAllLiveRaces();
-    priceIntervalRef.current = setInterval(pollAllLiveRaces, PRICE_POLL_MS);
+    // Baseline DexScreener polling (WS trades trigger extra fetches on top)
+    fetchAndBroadcastPrices();
+    priceIntervalRef.current = setInterval(
+      fetchAndBroadcastPrices,
+      DEXSCREENER_POLL_MS
+    );
 
     return () => {
       if (intervalRef.current) clearInterval(intervalRef.current);
       if (priceIntervalRef.current) clearInterval(priceIntervalRef.current);
+      disconnectPumpPortal();
     };
   }, []);
 }

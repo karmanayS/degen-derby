@@ -18,6 +18,7 @@ interface HorseTrackProps {
   selectable?: boolean;
   selectedCoin?: string | null;
   onCoinSelect?: (symbol: string) => void;
+  onCoinDetail?: (address: string) => void;
 }
 
 export function HorseTrack({
@@ -27,6 +28,7 @@ export function HorseTrack({
   selectable,
   selectedCoin,
   onCoinSelect,
+  onCoinDetail,
 }: HorseTrackProps) {
   const lanes = positions.map((pos, i) => {
     const coin = coins.find(
@@ -60,6 +62,7 @@ export function HorseTrack({
           <HorseLane
             key={lane.address ?? lane.symbol}
             symbol={lane.symbol}
+            address={lane.address}
             name={lane.name}
             logo={lane.logo}
             percentChange={lane.percentChange}
@@ -71,6 +74,7 @@ export function HorseTrack({
             selectable={selectable}
             isSelected={selectedCoin === lane.symbol}
             onSelect={onCoinSelect}
+            onDetail={onCoinDetail}
           />
         ))}
       </View>
@@ -89,7 +93,7 @@ const styles = StyleSheet.create({
     backgroundColor: T.cardBg,
   },
   trackBody: {
-    paddingVertical: vs(4),
+    paddingVertical: vs(6),
     zIndex: 1,
   },
 });

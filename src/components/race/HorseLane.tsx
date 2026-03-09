@@ -24,6 +24,7 @@ import { s, fs, vs } from "../../lib/responsive";
 
 interface HorseLaneProps {
   symbol: string;
+  address: string;
   name: string;
   logo: string;
   percentChange: number;
@@ -35,12 +36,14 @@ interface HorseLaneProps {
   selectable?: boolean;
   isSelected?: boolean;
   onSelect?: (symbol: string) => void;
+  onDetail?: (address: string) => void;
 }
 
-const ICON_SIZE = s(24);
+const ICON_SIZE = s(40);
 
 export function HorseLane({
   symbol,
+  address,
   name,
   logo,
   percentChange,
@@ -51,6 +54,7 @@ export function HorseLane({
   selectable,
   isSelected,
   onSelect,
+  onDetail,
 }: HorseLaneProps) {
   const [trackWidth, setTrackWidth] = useState(0);
   const position = useSharedValue(0);
@@ -78,17 +82,30 @@ export function HorseLane({
   };
 
   const changeColor = percentChange >= 0 ? "#4CAF50" : T.danger;
-  const displayName = name.length > 8 ? symbol : name;
   const isLeader = rank === 1;
 
-  const Wrapper = selectable ? Pressable : View;
-  const wrapperProps = selectable ? { onPress: () => onSelect?.(symbol) } : {};
+  const isTappable = selectable || !!onDetail;
+  const Wrapper = isTappable ? Pressable : View;
+  const wrapperProps = isTappable
+    ? {
+        onPress: () => {
+          if (selectable) {
+            onSelect?.(symbol);
+          } else {
+            onDetail?.(address);
+          }
+        },
+      }
+    : {};
 
   return (
     <Wrapper {...wrapperProps} style={[styles.laneWrapper, isSelected && styles.laneSelected]}>
       <View style={styles.laneInfo}>
         <Text style={[styles.laneNum, isLeader && styles.leaderNum]}>{laneIndex + 1}</Text>
-        <Text style={styles.coinName} numberOfLines={1}>{displayName}</Text>
+        <View style={styles.nameCol}>
+          <Text style={styles.coinSymbol} numberOfLines={1}>{symbol}</Text>
+          <Text style={styles.coinName} numberOfLines={1}>{name}</Text>
+        </View>
       </View>
 
       <View style={styles.trackArea} onLayout={onTrackLayout}>
@@ -124,36 +141,46 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     paddingHorizontal: s(10),
-    paddingVertical: vs(6),
+    paddingVertical: vs(8),
     borderBottomWidth: 1,
     borderBottomColor: T.brownDark + "88",
   },
   laneSelected: {
     backgroundColor: "#00FF8812",
+    borderLeftWidth: 3,
+    borderLeftColor: "#00FF88",
   },
   laneInfo: {
     flexDirection: "row",
     alignItems: "center",
     flexShrink: 0,
-    maxWidth: s(100),
+    width: s(100),
   },
   laneNum: {
     color: T.muted,
     fontSize: fs(15),
     fontWeight: "900",
-    width: s(20),
+    width: s(18),
     textAlign: "center",
   },
   leaderNum: {
     color: T.gold,
   },
-  coinName: {
-    color: T.sandLight,
-    fontSize: fs(11),
-    fontWeight: "700",
+  nameCol: {
+    flex: 1,
     marginLeft: s(4),
-    flexShrink: 1,
-    marginRight: s(8),
+    marginRight: s(6),
+  },
+  coinSymbol: {
+    color: T.cream,
+    fontSize: fs(12),
+    fontWeight: "800",
+  },
+  coinName: {
+    color: T.muted,
+    fontSize: fs(9),
+    fontWeight: "600",
+    marginTop: vs(1),
   },
   trackArea: {
     flex: 1,

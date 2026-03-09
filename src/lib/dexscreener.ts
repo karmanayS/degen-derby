@@ -1,6 +1,6 @@
 import { DEXSCREENER_BASE_URL, FALLBACK_COINS } from "./constants";
 
-interface DexScreenerPair {
+export interface DexScreenerPair {
   baseToken: {
     address: string;
     name: string;
@@ -63,6 +63,37 @@ export async function getTokenPrice(
       priceChange24h: bestPair.priceChange?.h24 ?? 0,
       logo: bestPair.info?.imageUrl ?? "",
     };
+  } catch {
+    return null;
+  }
+}
+
+export async function getTokenDetailedInfo(
+  tokenAddress: string
+): Promise<DexScreenerPair | null> {
+  try {
+    const res = await fetch(
+      `${DEXSCREENER_BASE_URL}/latest/dex/tokens/${tokenAddress}`
+    );
+    const data = await res.json();
+
+    if (!data.pairs || data.pairs.length === 0) return null;
+
+    const solanaPairs = data.pairs.filter(
+      (p: DexScreenerPair) => p.chainId === "solana"
+    );
+    if (solanaPairs.length === 0) return null;
+
+    let bestPair: DexScreenerPair = solanaPairs[0];
+    for (let i = 0; i < solanaPairs.length; i++) {
+      if (
+        !bestPair ||
+        (solanaPairs[i].liquidity?.usd ?? 0) > (bestPair.liquidity?.usd ?? 0)
+      ) {
+        bestPair = solanaPairs[i];
+      }
+    }
+    return bestPair;
   } catch {
     return null;
   }

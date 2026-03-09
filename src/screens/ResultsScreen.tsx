@@ -12,6 +12,7 @@ import { useRoute, useNavigation } from "@react-navigation/native";
 import { LinearGradient } from "expo-linear-gradient";
 import { supabase } from "../lib/supabase";
 import { useAuthorization } from "../utils/useAuthorization";
+import { TokenDetailSheet } from "../components/race/TokenDetailSheet";
 import { Race } from "../types";
 import { s, fs, vs } from "../lib/responsive";
 
@@ -51,6 +52,7 @@ export function ResultsScreen() {
   const [userPick, setUserPick] = useState<string | null>(null);
   const [userPayout, setUserPayout] = useState<number>(0);
   const [claimed, setClaimed] = useState(false);
+  const [detailCoinAddress, setDetailCoinAddress] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -247,13 +249,14 @@ export function ResultsScreen() {
           const changeColor = coin.percentChange >= 0 ? C.green : C.danger;
 
           return (
-            <View
+            <Pressable
               key={coin.address}
               style={[
                 styles.rankRow,
                 isWinner && styles.rankFirst,
                 isUserPick && styles.rankUserPick,
               ]}
+              onPress={() => setDetailCoinAddress(coin.address)}
             >
               <Text style={[styles.rankNum, isWinner && { color: C.gold }]}>
                 #{index + 1}
@@ -262,7 +265,7 @@ export function ResultsScreen() {
                 <Image source={{ uri: coin.logo }} style={styles.rankLogo} />
               ) : (
                 <View style={[styles.rankLogo, { justifyContent: "center", alignItems: "center", backgroundColor: C.sand + "22" }]}>
-                  <Text style={{ color: C.gold, fontSize: fs(10), fontWeight: "bold" }}>{coin.symbol[0]}</Text>
+                  <Text style={{ color: C.gold, fontSize: fs(14), fontWeight: "bold" }}>{coin.symbol[0]}</Text>
                 </View>
               )}
               <View style={styles.rankInfo}>
@@ -273,7 +276,7 @@ export function ResultsScreen() {
                 {coin.percentChange >= 0 ? "+" : ""}
                 {coin.percentChange.toFixed(2)}%
               </Text>
-            </View>
+            </Pressable>
           );
         })}
 
@@ -284,6 +287,15 @@ export function ResultsScreen() {
         >
           <Text style={styles.nextBtnText}>Back to Races</Text>
         </Pressable>
+
+        <TokenDetailSheet
+          visible={!!detailCoinAddress}
+          coinAddress={detailCoinAddress}
+          race={race}
+          positions={[]}
+          latestPrices={[]}
+          onClose={() => setDetailCoinAddress(null)}
+        />
       </ScrollView>
     </View>
   );
@@ -385,21 +397,21 @@ const styles = StyleSheet.create({
     marginTop: vs(8),
   },
   rankingsTitle: {
-    color: C.sand,
-    fontSize: fs(10),
+    color: C.cream,
+    fontSize: fs(13),
     fontWeight: "800",
     letterSpacing: 2,
     paddingHorizontal: s(16),
-    marginTop: vs(8),
+    marginTop: vs(12),
     marginBottom: vs(8),
   },
   rankRow: {
     flexDirection: "row",
     alignItems: "center",
-    paddingVertical: vs(10),
+    paddingVertical: vs(12),
     paddingHorizontal: s(12),
     marginHorizontal: s(16),
-    marginVertical: vs(2),
+    marginVertical: vs(3),
     backgroundColor: C.sand + "18",
     borderRadius: s(10),
     borderWidth: 1,
@@ -412,32 +424,33 @@ const styles = StyleSheet.create({
     borderColor: C.green + "44",
   },
   rankNum: {
-    color: C.muted,
-    fontSize: fs(14),
+    color: C.sandLight,
+    fontSize: fs(16),
     fontWeight: "900",
-    width: s(28),
+    width: s(32),
   },
   rankLogo: {
-    width: s(24),
-    height: s(24),
-    borderRadius: s(12),
+    width: s(36),
+    height: s(36),
+    borderRadius: s(18),
     backgroundColor: C.sand + "22",
-    marginRight: s(8),
+    marginRight: s(10),
   },
   rankInfo: {
     flex: 1,
   },
   rankName: {
-    color: C.sandLight,
-    fontSize: fs(13),
+    color: C.cream,
+    fontSize: fs(14),
     fontWeight: "700",
   },
   rankSymbol: {
-    color: C.muted,
-    fontSize: fs(10),
+    color: C.sandLight,
+    fontSize: fs(12),
+    fontWeight: "600",
   },
   rankChange: {
-    fontSize: fs(14),
+    fontSize: fs(15),
     fontWeight: "800",
     fontVariant: ["tabular-nums"],
   },

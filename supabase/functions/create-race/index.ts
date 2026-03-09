@@ -72,7 +72,59 @@ async function getBatchPrices(addresses: string[]): Promise<TokenPrice[]> {
   return results;
 }
 
+// Fetch actively traded pump.fun tokens with high volume
+async function getActivePumpFunTokens(): Promise<TokenPrice[]> {
+  try {
+    const res = await fetch(`${DEXSCREENER_BASE}/token-boosts/latest/v1`);
+    const data = await res.json();
+
+    const seen = new Set<string>();
+    const pumpAddresses: string[] = [];
+    const otherAddresses: string[] = [];
+
+    for (const t of data) {
+      if (t.chainId !== "solana" || seen.has(t.tokenAddress)) continue;
+      seen.add(t.tokenAddress);
+      // Pump.fun tokens end in "pump" - these work with PumpPortal WS
+      if (t.tokenAddress.endsWith("pump")) {
+        pumpAddresses.push(t.tokenAddress);
+      } else {
+        otherAddresses.push(t.tokenAddress);
+      }
+    }
+
+    // Prioritize pump.fun tokens, fill remaining slots with others
+    const topAddresses = [
+      ...pumpAddresses.slice(0, 25),
+      ...otherAddresses.slice(0, 10),
+    ].slice(0, 30);
+
+    if (topAddresses.length === 0) return [];
+
+    const prices = await getBatchPrices(topAddresses);
+
+    const iconByAddress = new Map<string, string>();
+    for (const t of data) {
+      if (t.icon) iconByAddress.set(t.tokenAddress, t.icon);
+    }
+
+    return prices
+      .filter((p) => p.price > 0)
+      .map((p) => ({
+        ...p,
+        logo: p.logo || iconByAddress.get(p.address) || "",
+      }));
+  } catch {
+    return [];
+  }
+}
+
 async function getTrendingCoins(): Promise<TokenPrice[]> {
+  // Try pump.fun focused fetch first
+  const pumpCoins = await getActivePumpFunTokens();
+  if (pumpCoins.length >= 5) return pumpCoins;
+
+  // Fallback to generic trending
   try {
     const res = await fetch(`${DEXSCREENER_BASE}/token-boosts/latest/v1`);
     const data = await res.json();
@@ -87,7 +139,6 @@ async function getTrendingCoins(): Promise<TokenPrice[]> {
     const topAddresses = solanaTokens.slice(0, 20).map((t: any) => t.tokenAddress);
     const prices = await getBatchPrices(topAddresses);
 
-    // Build icon lookup from boosted data
     const iconByAddress = new Map<string, string>();
     for (const t of solanaTokens.slice(0, 20)) {
       if (t.icon) iconByAddress.set(t.tokenAddress, t.icon);

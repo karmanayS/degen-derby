@@ -42,3 +42,10 @@ doubts.txt
 IMPLEMENTATION_PLAN.md
 PLAN_1.md
 house-wallet.json
+
+# Native build output
+android/
+ios/
+
+# Package manager lock (using yarn)
+package-lock.json

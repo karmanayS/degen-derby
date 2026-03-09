@@ -14,23 +14,29 @@ const {
 const { createClient } = require("@supabase/supabase-js");
 const fs = require("fs");
 const path = require("path");
+require("dotenv/config");
 
 // --- Config ---
 const SUPABASE_URL = "https://sgibrenfgqozvtpqcmyz.supabase.co";
-const SUPABASE_SERVICE_ROLE_KEY =
-  process.env.SUPABASE_SERVICE_ROLE_KEY || "";
-const SOLANA_RPC_URL = process.env.SOLANA_RPC_URL || "https://api.mainnet-beta.solana.com";
+const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || "";
+const SOLANA_RPC_URL =
+  process.env.SOLANA_RPC_URL || "https://api.mainnet-beta.solana.com";
 const POLL_INTERVAL_MS = 5000; // check every 5 seconds
 
 if (!SUPABASE_SERVICE_ROLE_KEY) {
   console.error("ERROR: Set SUPABASE_SERVICE_ROLE_KEY environment variable");
-  console.error("Usage: SUPABASE_SERVICE_ROLE_KEY=your_key node scripts/process-claims.js");
+  console.error(
+    "Usage: SUPABASE_SERVICE_ROLE_KEY=your_key node scripts/process-claims.js",
+  );
   process.exit(1);
 }
 
 // Load house wallet from json file
-const walletPath = path.resolve(__dirname, "../house-wallet.json");
-const secretKey = Uint8Array.from(JSON.parse(fs.readFileSync(walletPath, "utf-8")));
+const walletPath = path.resolve(__dirname, "house-wallet.json");
+const secretKey = Uint8Array.from(
+  JSON.parse(fs.readFileSync(walletPath, "utf-8")),
+);
+console.log(secretKey);
 const houseKeypair = Keypair.fromSecretKey(secretKey);
 
 console.log(`House wallet: ${houseKeypair.publicKey.toBase58()}`);
@@ -40,7 +46,9 @@ const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
 async function processOneClaim(bet) {
   const lamports = Math.round(Number(bet.payout) * LAMPORTS_PER_SOL);
-  console.log(`Processing bet ${bet.id}: ${bet.payout} SOL -> ${bet.wallet_address}`);
+  console.log(
+    `Processing bet ${bet.id}: ${bet.payout} SOL -> ${bet.wallet_address}`,
+  );
 
   try {
     const tx = new Transaction().add(
@@ -48,17 +56,16 @@ async function processOneClaim(bet) {
         fromPubkey: houseKeypair.publicKey,
         toPubkey: new PublicKey(bet.wallet_address),
         lamports,
-      })
+      }),
     );
 
-    const signature = await sendAndConfirmTransaction(connection, tx, [houseKeypair]);
+    const signature = await sendAndConfirmTransaction(connection, tx, [
+      houseKeypair,
+    ]);
     console.log(`  Sent! tx: ${signature}`);
 
     // Mark as claimed
-    await supabase
-      .from("bets")
-      .update({ claimed: true })
-      .eq("id", bet.id);
+    await supabase.from("bets").update({ claimed: true }).eq("id", bet.id);
 
     console.log(`  Marked as claimed.`);
   } catch (err) {
@@ -93,7 +100,9 @@ async function main() {
   // Check house wallet balance
   const balance = await connection.getBalance(houseKeypair.publicKey);
   console.log(`House wallet balance: ${balance / LAMPORTS_PER_SOL} SOL`);
-  console.log(`Polling for unclaimed payouts every ${POLL_INTERVAL_MS / 1000}s...\n`);
+  console.log(
+    `Polling for unclaimed payouts every ${POLL_INTERVAL_MS / 1000}s...\n`,
+  );
 
   // Initial run
   await pollAndProcess();

@@ -8,11 +8,19 @@ import {
   TextInput,
   ImageBackground,
 } from "react-native";
+import Animated, {
+  useSharedValue,
+  useAnimatedStyle,
+  withRepeat,
+  withTiming,
+  Easing,
+} from "react-native-reanimated";
 import { useRoute, useNavigation } from "@react-navigation/native";
 import { LinearGradient } from "expo-linear-gradient";
 import { HorseTrack } from "../components/race/HorseTrack";
 import { CountdownTimer } from "../components/race/CountdownTimer";
 import { BetConfirmModal } from "../components/race/BetConfirmModal";
+import { TokenDetailSheet } from "../components/race/TokenDetailSheet";
 import { useRaceLive } from "../hooks/useRaceLive";
 import { useBet } from "../hooks/useBet";
 import { useAuthorization } from "../utils/useAuthorization";
@@ -57,10 +65,11 @@ export function RaceScreen() {
   const [bets, setBets] = useState<Bet[]>([]);
   const [playerBet, setPlayerBet] = useState<Bet | null>(null);
   const [walletUsernames, setWalletUsernames] = useState<Record<string, string>>({});
+  const [detailCoinAddress, setDetailCoinAddress] = useState<string | null>(null);
   const { hasSkr } = useSkrStatus();
   const maxBet = hasSkr ? BET_LIMITS.SKR_MAX : BET_LIMITS.MAX;
 
-  const { positions } = useRaceLive(
+  const { positions, latestPrices } = useRaceLive(
     race.status === "live" ? raceId : null
   );
   const { placeBet, loading: betLoading, error: betError } = useBet();
@@ -203,6 +212,22 @@ export function RaceScreen() {
   const isLive = race.status === "live";
   const isFinished = race.status === "finished";
 
+  const liveDotOpacity = useSharedValue(1);
+
+  useEffect(() => {
+    if (isLive) {
+      liveDotOpacity.value = withRepeat(
+        withTiming(0.2, { duration: 800, easing: Easing.inOut(Easing.ease) }),
+        -1,
+        true
+      );
+    }
+  }, [isLive]);
+
+  const liveDotStyle = useAnimatedStyle(() => ({
+    opacity: liveDotOpacity.value,
+  }));
+
   return (
     <View style={styles.wrapper}>
       <ImageBackground
@@ -238,7 +263,7 @@ export function RaceScreen() {
           {isLive && (
             <View style={styles.topBarItem}>
               <View style={styles.liveRow}>
-                <View style={styles.liveDot} />
+                <Animated.View style={[styles.liveDot, liveDotStyle]} />
                 <Text style={styles.topBarLabelLive}>LIVE</Text>
               </View>
               <CountdownTimer endTime={race.endTime} status={race.status} compact color={C.neonGreen} textColor="#FFFFFF" />
@@ -264,8 +289,7 @@ export function RaceScreen() {
         {/* "Pick your horse" prompt */}
         {isUpcoming && !hasBet && (
           <View style={styles.pickHorseRow}>
-            <Text style={styles.pickHorseText}>Pick your horse</Text>
-            <Text style={styles.pickHorseArrow}>{"\u2193"}</Text>
+            <Text style={styles.pickHorseText}>TAP A HORSE TO BET</Text>
           </View>
         )}
 
@@ -277,6 +301,7 @@ export function RaceScreen() {
           selectable={isUpcoming && !hasBet}
           selectedCoin={selectedCoin}
           onCoinSelect={(symbol) => setSelectedCoin(symbol)}
+          onCoinDetail={(address) => setDetailCoinAddress(address)}
         />
 
         {/* Player's bet status */}
@@ -295,26 +320,34 @@ export function RaceScreen() {
           </View>
         )}
 
-        {/* Betting UI — inline row during upcoming, closed message during live */}
-        {isUpcoming && !hasBet && selectedCoin && (
-          <View style={styles.betInputRow}>
-            <TextInput
-              style={styles.betInput}
-              placeholder="Amount (SOL)"
-              placeholderTextColor={C.sand}
-              keyboardType="decimal-pad"
-              value={betAmount}
-              onChangeText={setBetAmount}
-            />
-            <Pressable
-              style={[styles.placeBetBtn, (!isValidBet) && styles.placeBetBtnDisabled]}
-              onPress={() => setShowBetModal(true)}
-              disabled={!isValidBet}
-            >
-              <Text style={[styles.placeBetBtnText, (!isValidBet) && styles.placeBetBtnTextDisabled]}>
-                Place Bet
-              </Text>
-            </Pressable>
+        {/* Betting UI — always visible during upcoming */}
+        {isUpcoming && !hasBet && (
+          <View>
+            <View style={styles.betInputRow}>
+              <TextInput
+                style={styles.betInput}
+                placeholder="Amount (SOL)"
+                placeholderTextColor={C.sand}
+                keyboardType="decimal-pad"
+                value={betAmount}
+                onChangeText={setBetAmount}
+              />
+              <Pressable
+                style={[styles.placeBetBtn, (!selectedCoin || !isValidBet) && styles.placeBetBtnDisabled]}
+                onPress={() => {
+                  if (!selectedCoin || !isValidBet) return;
+                  setShowBetModal(true);
+                }}
+                disabled={!selectedCoin || !isValidBet}
+              >
+                <Text style={[styles.placeBetBtnText, (!selectedCoin || !isValidBet) && styles.placeBetBtnTextDisabled]}>
+                  {selectedCoin ? "Place Bet" : "Select Horse"}
+                </Text>
+              </Pressable>
+            </View>
+            <Text style={[styles.betHelperText, selectedCoin ? styles.betHelperActive : null]}>
+              {selectedCoin ? `Betting on ${selectedCoin}` : "Select a horse above"}
+            </Text>
           </View>
         )}
 
@@ -377,6 +410,15 @@ export function RaceScreen() {
           error={betError}
           onConfirm={handleConfirmBet}
           onCancel={() => setShowBetModal(false)}
+        />
+
+        <TokenDetailSheet
+          visible={!!detailCoinAddress}
+          coinAddress={detailCoinAddress}
+          race={race}
+          positions={positions}
+          latestPrices={latestPrices}
+          onClose={() => setDetailCoinAddress(null)}
         />
       </ScrollView>
     </View>
@@ -477,17 +519,18 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginTop: vs(6),
     marginBottom: vs(2),
+    marginHorizontal: s(16),
+    paddingVertical: vs(10),
+    backgroundColor: "#00FF8822",
+    borderRadius: s(10),
+    borderWidth: 1,
+    borderColor: C.neonGreen + "44",
   },
   pickHorseText: {
-    color: C.sand,
-    fontSize: fs(13),
-    fontWeight: "700",
-    letterSpacing: 1,
-  },
-  pickHorseArrow: {
-    color: C.sand,
-    fontSize: fs(16),
-    marginTop: vs(2),
+    color: "#FFFFFF",
+    fontSize: fs(18),
+    fontWeight: "900",
+    letterSpacing: 1.5,
   },
   betStatus: {
     marginHorizontal: s(16),
@@ -551,6 +594,17 @@ const styles = StyleSheet.create({
   },
   placeBetBtnTextDisabled: {
     color: "#FFFFFFAA",
+  },
+  betHelperText: {
+    color: C.sandDark,
+    fontSize: fs(12),
+    fontWeight: "600",
+    textAlign: "center",
+    marginTop: vs(6),
+    marginHorizontal: s(16),
+  },
+  betHelperActive: {
+    color: C.neonGreen,
   },
   bettingClosed: {
     marginHorizontal: s(16),

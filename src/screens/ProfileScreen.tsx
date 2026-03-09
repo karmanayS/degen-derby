@@ -7,8 +7,8 @@ import {
   ImageBackground,
   TouchableOpacity,
   TextInput,
-  Alert,
 } from "react-native";
+import Toast from "react-native-toast-message";
 import * as Clipboard from "expo-clipboard";
 import MaterialCommunityIcon from "@expo/vector-icons/MaterialCommunityIcons";
 import { LinearGradient } from "expo-linear-gradient";
@@ -62,11 +62,11 @@ export function ProfileScreen() {
   const handleSaveUsername = async () => {
     const trimmed = editedUsername.trim();
     if (trimmed.length < 3) {
-      Alert.alert("Error", "Username must be at least 3 characters");
+      Toast.show({ type: "error", text1: "Error", text2: "Username must be at least 3 characters" });
       return;
     }
     if (!/^[a-zA-Z0-9_]+$/.test(trimmed)) {
-      Alert.alert("Error", "Only letters, numbers, and underscores allowed");
+      Toast.show({ type: "error", text1: "Error", text2: "Only letters, numbers, and underscores allowed" });
       return;
     }
     if (trimmed === username) {
@@ -82,7 +82,7 @@ export function ProfileScreen() {
       .limit(1);
 
     if (existing && existing.length > 0) {
-      Alert.alert("Error", "Username already taken");
+      Toast.show({ type: "error", text1: "Error", text2: "Username already taken" });
       setSavingUsername(false);
       return;
     }
@@ -93,7 +93,7 @@ export function ProfileScreen() {
       .eq("wallet_address", walletAddress);
 
     if (error) {
-      Alert.alert("Error", error.message);
+      Toast.show({ type: "error", text1: "Error", text2: error.message });
     } else {
       setUsername(trimmed);
       setIsEditingUsername(false);
@@ -104,7 +104,7 @@ export function ProfileScreen() {
   const handleCopyAddress = async () => {
     if (walletAddress) {
       await Clipboard.setStringAsync(walletAddress);
-      Alert.alert("Copied", "Wallet address copied to clipboard");
+      Toast.show({ type: "success", text1: "Copied", text2: "Wallet address copied to clipboard" });
     }
   };
 
