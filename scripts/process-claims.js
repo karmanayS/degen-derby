@@ -12,8 +12,6 @@ const {
   LAMPORTS_PER_SOL,
 } = require("@solana/web3.js");
 const { createClient } = require("@supabase/supabase-js");
-const fs = require("fs");
-const path = require("path");
 require("dotenv/config");
 
 // --- Config ---
@@ -31,12 +29,12 @@ if (!SUPABASE_SERVICE_ROLE_KEY) {
   process.exit(1);
 }
 
-// Load house wallet from json file
-const walletPath = path.resolve(__dirname, "house-wallet.json");
-const secretKey = Uint8Array.from(
-  JSON.parse(fs.readFileSync(walletPath, "utf-8")),
-);
-console.log(secretKey);
+// Load house wallet from HOUSE_WALLET_SECRET env variable (JSON array string)
+if (!process.env.HOUSE_WALLET_SECRET) {
+  console.error("ERROR: Set HOUSE_WALLET_SECRET environment variable (JSON array of secret key bytes)");
+  process.exit(1);
+}
+const secretKey = Uint8Array.from(JSON.parse(process.env.HOUSE_WALLET_SECRET));
 const houseKeypair = Keypair.fromSecretKey(secretKey);
 
 console.log(`House wallet: ${houseKeypair.publicKey.toBase58()}`);
