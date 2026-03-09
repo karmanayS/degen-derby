@@ -1,6 +1,7 @@
 import React from "react";
 import { View, Text, StyleSheet } from "react-native";
 import { COLORS } from "../../lib/constants";
+import { s, fs, vs } from "../../lib/responsive";
 
 interface SkrBadgeProps {
   balance: number;
@@ -31,32 +32,32 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.surface,
     borderWidth: 1,
     borderColor: COLORS.gold,
-    borderRadius: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
+    borderRadius: s(8),
+    paddingHorizontal: s(12),
+    paddingVertical: vs(8),
     alignItems: "center",
   },
   label: {
     color: COLORS.gold,
-    fontSize: 10,
+    fontSize: fs(10),
     fontWeight: "bold",
     letterSpacing: 1,
   },
   balance: {
     color: COLORS.text,
-    fontSize: 14,
+    fontSize: fs(14),
     fontWeight: "600",
-    marginTop: 2,
+    marginTop: vs(2),
   },
   compactBadge: {
     backgroundColor: COLORS.gold,
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 4,
+    paddingHorizontal: s(6),
+    paddingVertical: vs(2),
+    borderRadius: s(4),
   },
   compactText: {
     color: COLORS.background,
-    fontSize: 9,
+    fontSize: fs(9),
     fontWeight: "bold",
   },
 });

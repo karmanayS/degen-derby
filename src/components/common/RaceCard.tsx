@@ -8,6 +8,7 @@ import {
 } from "react-native";
 import { Race } from "../../types";
 import WoodGrainTexture from "./WoodGrainTexture";
+import { s, fs, vs } from "../../lib/responsive";
 
 const T = {
   cardBg: "#221710",
@@ -135,7 +136,7 @@ export function RaceCard({ race, onPress }: RaceCardProps) {
                 <Image source={{ uri: coin.logo }} style={styles.coinLogo} />
               ) : (
                 <View style={[styles.coinLogo, { backgroundColor: T.brownGrain, justifyContent: "center", alignItems: "center" }]}>
-                  <Text style={{ color: T.gold, fontSize: 14, fontWeight: "bold" }}>{coin.symbol[0]}</Text>
+                  <Text style={{ color: T.gold, fontSize: fs(14), fontWeight: "bold" }}>{coin.symbol[0]}</Text>
                 </View>
               )}
             </View>
@@ -169,9 +170,9 @@ export function RaceCard({ race, onPress }: RaceCardProps) {
 const styles = StyleSheet.create({
   card: {
     backgroundColor: T.cardBg,
-    borderRadius: 16,
-    marginHorizontal: 14,
-    marginVertical: 6,
+    borderRadius: s(16),
+    marginHorizontal: s(14),
+    marginVertical: vs(6),
     borderWidth: 1.5,
     borderColor: T.brownWood + "88",
     overflow: "hidden",
@@ -181,7 +182,7 @@ const styles = StyleSheet.create({
     borderColor: T.green + "99",
     shadowColor: T.green,
     shadowOpacity: 0.25,
-    shadowRadius: 12,
+    shadowRadius: s(12),
     shadowOffset: { width: 0, height: 0 },
     elevation: 0,
   },
@@ -189,53 +190,53 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    paddingHorizontal: 16,
-    paddingTop: 14,
-    paddingBottom: 12,
+    paddingHorizontal: s(16),
+    paddingTop: vs(14),
+    paddingBottom: vs(12),
     zIndex: 1,
   },
   badge: {
     flexDirection: "row",
     alignItems: "center",
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 6,
+    paddingHorizontal: s(10),
+    paddingVertical: vs(4),
+    borderRadius: s(6),
     borderWidth: 1,
     borderColor: T.brownWood + "66",
   },
   liveDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
+    width: s(6),
+    height: s(6),
+    borderRadius: s(3),
     backgroundColor: T.green,
-    marginRight: 6,
+    marginRight: s(6),
   },
   badgeText: {
-    fontSize: 10,
+    fontSize: fs(10),
     fontWeight: "800",
     letterSpacing: 1.5,
   },
   time: {
     color: T.sand + "AA",
-    fontSize: 11,
+    fontSize: fs(11),
     fontWeight: "600",
   },
   coinsRow: {
     flexDirection: "row",
     justifyContent: "center",
-    paddingHorizontal: 16,
-    paddingBottom: 14,
-    gap: 14,
+    paddingHorizontal: s(16),
+    paddingBottom: vs(14),
+    gap: s(14),
     zIndex: 1,
   },
   coinItem: {
     alignItems: "center",
-    gap: 5,
+    gap: s(5),
   },
   coinRing: {
-    width: 42,
-    height: 42,
-    borderRadius: 21,
+    width: s(42),
+    height: s(42),
+    borderRadius: s(21),
     backgroundColor: T.brownGrain,
     borderWidth: 2,
     borderColor: T.gold + "44",
@@ -243,17 +244,17 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     shadowColor: T.green,
     shadowOpacity: 0.08,
-    shadowRadius: 6,
+    shadowRadius: s(6),
     shadowOffset: { width: 0, height: 0 },
   },
   coinLogo: {
-    width: 30,
-    height: 30,
-    borderRadius: 15,
+    width: s(30),
+    height: s(30),
+    borderRadius: s(15),
   },
   coinSymbol: {
     color: T.gold + "CC",
-    fontSize: 9,
+    fontSize: fs(9),
     fontWeight: "700",
     letterSpacing: 0.5,
   },
@@ -263,8 +264,8 @@ const styles = StyleSheet.create({
     backgroundColor: T.brownGrain + "DD",
     borderTopWidth: 1,
     borderTopColor: T.brownDark,
-    paddingVertical: 10,
-    paddingHorizontal: 16,
+    paddingVertical: vs(10),
+    paddingHorizontal: s(16),
     zIndex: 1,
   },
   stat: {
@@ -273,20 +274,20 @@ const styles = StyleSheet.create({
   },
   statLabel: {
     color: T.muted,
-    fontSize: 8,
+    fontSize: fs(8),
     fontWeight: "700",
     letterSpacing: 1.2,
-    marginBottom: 2,
+    marginBottom: vs(2),
   },
   statValue: {
     color: T.cream,
-    fontSize: 14,
+    fontSize: fs(14),
     fontWeight: "900",
     fontVariant: ["tabular-nums"],
   },
   statDivider: {
     width: 1,
-    height: 22,
+    height: vs(22),
     backgroundColor: T.brownDark,
   },
 });

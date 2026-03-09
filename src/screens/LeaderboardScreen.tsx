@@ -11,6 +11,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import { useLeaderboard } from "../hooks/useLeaderboard";
 import { useAuthorization } from "../utils/useAuthorization";
 import { LeaderboardEntry } from "../types";
+import { s, fs, vs } from "../lib/responsive";
 
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const grassTexture = require("../../assets/images/grass-turf.png");
@@ -112,10 +113,10 @@ export function LeaderboardScreen() {
       </View>
 
       <View style={styles.colHeaders}>
-        <Text style={[styles.colHeader, { width: 36, textAlign: "center" }]}>RANK</Text>
-        <Text style={[styles.colHeader, { flex: 1, marginLeft: 14 }]}>PLAYER</Text>
-        <Text style={[styles.colHeader, { width: 46, textAlign: "center" }]}>RACES</Text>
-        <Text style={[styles.colHeader, { width: 70, textAlign: "right" }]}>WON</Text>
+        <Text style={[styles.colHeader, { width: s(36), textAlign: "center" }]}>RANK</Text>
+        <Text style={[styles.colHeader, { flex: 1, marginLeft: s(14) }]}>PLAYER</Text>
+        <Text style={[styles.colHeader, { width: s(46), textAlign: "center" }]}>RACES</Text>
+        <Text style={[styles.colHeader, { width: s(70), textAlign: "right" }]}>WON</Text>
       </View>
 
       <FlatList
@@ -156,13 +157,13 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: "row",
     alignItems: "center",
-    paddingVertical: 10,
-    paddingHorizontal: 12,
-    marginHorizontal: 16,
-    marginTop: 12,
-    marginBottom: 8,
+    paddingVertical: vs(10),
+    paddingHorizontal: s(12),
+    marginHorizontal: s(16),
+    marginTop: vs(12),
+    marginBottom: vs(8),
     backgroundColor: C.sand + "18",
-    borderRadius: 10,
+    borderRadius: s(10),
     borderWidth: 1,
     borderColor: C.sand + "33",
   },
@@ -172,44 +173,44 @@ const styles = StyleSheet.create({
   },
   headerDivider: {
     width: 1,
-    height: 24,
+    height: vs(24),
     backgroundColor: C.sand + "33",
-    marginHorizontal: 4,
+    marginHorizontal: s(4),
   },
   headerStatLabel: {
     color: C.sandDark,
-    fontSize: 8,
+    fontSize: fs(8),
     fontWeight: "700",
     letterSpacing: 1,
-    marginBottom: 2,
+    marginBottom: vs(2),
   },
   headerStatValue: {
     color: C.cream,
-    fontSize: 14,
+    fontSize: fs(14),
     fontWeight: "900",
     fontVariant: ["tabular-nums"],
   },
   colHeaders: {
     flexDirection: "row",
-    paddingHorizontal: 12,
-    paddingVertical: 8,
+    paddingHorizontal: s(12),
+    paddingVertical: vs(8),
     borderBottomWidth: 1,
     borderBottomColor: C.brownDark + "88",
   },
   colHeader: {
     color: C.sand,
-    fontSize: 9,
+    fontSize: fs(9),
     fontWeight: "700",
     letterSpacing: 1,
   },
   list: {
-    paddingBottom: 20,
+    paddingBottom: vs(20),
   },
   row: {
     flexDirection: "row",
     alignItems: "center",
-    paddingVertical: 11,
-    paddingHorizontal: 12,
+    paddingVertical: vs(11),
+    paddingHorizontal: s(12),
     borderBottomWidth: 1,
     borderBottomColor: C.brownDark + "88",
     backgroundColor: "transparent",
@@ -223,49 +224,49 @@ const styles = StyleSheet.create({
     borderLeftColor: C.green,
   },
   rankContainer: {
-    width: 36,
+    width: s(36),
     alignItems: "center",
   },
   rank: {
-    fontSize: 13,
+    fontSize: fs(13),
     fontWeight: "900",
   },
   info: {
     flex: 1,
-    marginLeft: 4,
+    marginLeft: s(4),
   },
   username: {
     color: C.sandLight,
-    fontSize: 13,
+    fontSize: fs(13),
     fontWeight: "700",
   },
   wallet: {
     color: C.muted,
-    fontSize: 10,
-    marginTop: 1,
+    fontSize: fs(10),
+    marginTop: vs(1),
   },
   matches: {
     color: C.sand,
-    fontSize: 12,
+    fontSize: fs(12),
     fontWeight: "700",
-    width: 46,
+    width: s(46),
     textAlign: "center",
     fontVariant: ["tabular-nums"],
   },
   earned: {
     color: C.green,
-    fontSize: 13,
+    fontSize: fs(13),
     fontWeight: "900",
-    width: 70,
+    width: s(70),
     textAlign: "right",
     fontVariant: ["tabular-nums"],
   },
   empty: {
-    paddingVertical: 60,
+    paddingVertical: vs(60),
     alignItems: "center",
   },
   emptyText: {
     color: C.muted,
-    fontSize: 14,
+    fontSize: fs(14),
   },
 });

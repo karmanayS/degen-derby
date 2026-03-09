@@ -9,6 +9,7 @@ import {
   Image,
 } from "react-native";
 import { Coin } from "../../types";
+import { s, fs, vs } from "../../lib/responsive";
 
 const C = {
   sand: "#C2A878",
@@ -59,7 +60,7 @@ export function BetConfirmModal({
               <Image source={{ uri: coin.logo }} style={styles.logo} />
             ) : (
               <View style={[styles.logo, styles.logoPlaceholder]}>
-                <Text style={{ color: C.gold, fontSize: 18, fontWeight: "bold" }}>{coin.symbol[0]}</Text>
+                <Text style={{ color: C.gold, fontSize: fs(18), fontWeight: "bold" }}>{coin.symbol[0]}</Text>
               </View>
             )}
             <View>
@@ -117,40 +118,40 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(0,0,0,0.8)",
     justifyContent: "center",
     alignItems: "center",
-    padding: 24,
+    padding: s(24),
   },
   modal: {
     backgroundColor: C.surface,
-    borderRadius: 16,
-    padding: 24,
+    borderRadius: s(16),
+    padding: s(24),
     width: "100%",
-    maxWidth: 340,
+    maxWidth: s(340),
     borderWidth: 1,
     borderColor: C.border,
   },
   title: {
     color: C.muted,
-    fontSize: 11,
+    fontSize: fs(11),
     fontWeight: "800",
     letterSpacing: 2,
     textAlign: "center",
-    marginBottom: 20,
+    marginBottom: vs(20),
   },
   coinRow: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 12,
-    marginBottom: 20,
-    padding: 12,
+    gap: s(12),
+    marginBottom: vs(20),
+    padding: s(12),
     backgroundColor: C.surfaceLight,
-    borderRadius: 12,
+    borderRadius: s(12),
     borderWidth: 1,
     borderColor: C.border,
   },
   logo: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: s(40),
+    height: s(40),
+    borderRadius: s(20),
     backgroundColor: "#0A0A0F",
   },
   logoPlaceholder: {
@@ -159,19 +160,19 @@ const styles = StyleSheet.create({
   },
   coinName: {
     color: C.cream,
-    fontSize: 16,
+    fontSize: fs(16),
     fontWeight: "800",
   },
   coinSymbol: {
     color: C.sandLight,
-    fontSize: 12,
+    fontSize: fs(12),
   },
   feeContainer: {
     backgroundColor: C.surfaceLight,
-    borderRadius: 12,
-    padding: 12,
-    marginBottom: 20,
-    gap: 8,
+    borderRadius: s(12),
+    padding: s(12),
+    marginBottom: vs(20),
+    gap: vs(8),
   },
   feeRow: {
     flexDirection: "row",
@@ -179,41 +180,41 @@ const styles = StyleSheet.create({
   },
   feeLabel: {
     color: C.sandLight,
-    fontSize: 13,
+    fontSize: fs(13),
   },
   feeValue: {
     color: C.neonGreen,
-    fontSize: 15,
+    fontSize: fs(15),
     fontWeight: "800",
     fontVariant: ["tabular-nums"],
   },
   error: {
     color: C.danger,
-    fontSize: 12,
+    fontSize: fs(12),
     textAlign: "center",
-    marginBottom: 12,
+    marginBottom: vs(12),
   },
   buttons: {
     flexDirection: "row",
-    gap: 12,
+    gap: s(12),
   },
   cancelBtn: {
     flex: 1,
-    paddingVertical: 14,
-    borderRadius: 12,
+    paddingVertical: vs(14),
+    borderRadius: s(12),
     borderWidth: 1,
     borderColor: C.border,
     alignItems: "center",
   },
   cancelText: {
     color: C.sandLight,
-    fontSize: 14,
+    fontSize: fs(14),
     fontWeight: "700",
   },
   confirmBtn: {
     flex: 1,
-    paddingVertical: 14,
-    borderRadius: 12,
+    paddingVertical: vs(14),
+    borderRadius: s(12),
     backgroundColor: C.neonGreen,
     alignItems: "center",
   },
@@ -222,7 +223,7 @@ const styles = StyleSheet.create({
   },
   confirmText: {
     color: "#0A0A0F",
-    fontSize: 14,
+    fontSize: fs(14),
     fontWeight: "800",
   },
 });

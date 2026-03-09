@@ -61,6 +61,7 @@ export const AppNavigator = () => {
                 headerStyle: { backgroundColor: T.headerBg, shadowColor: "transparent", elevation: 0 } as any,
                 headerTintColor: T.sand,
                 headerTitleStyle: { fontWeight: "900", fontSize: 16 },
+                headerTitleAlign: "center",
               }}
             />
             <Stack.Screen
@@ -72,6 +73,7 @@ export const AppNavigator = () => {
                 headerStyle: { backgroundColor: T.headerBg, shadowColor: "transparent", elevation: 0 } as any,
                 headerTintColor: T.sand,
                 headerTitleStyle: { fontWeight: "900", fontSize: 16 },
+                headerTitleAlign: "center",
                 headerBackVisible: false,
               }}
             />

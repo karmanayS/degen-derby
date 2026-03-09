@@ -5,13 +5,19 @@ import {
   StyleSheet,
   ScrollView,
   ImageBackground,
+  TouchableOpacity,
+  TextInput,
+  Alert,
 } from "react-native";
+import * as Clipboard from "expo-clipboard";
+import MaterialCommunityIcon from "@expo/vector-icons/MaterialCommunityIcons";
 import { LinearGradient } from "expo-linear-gradient";
 import { WalletButton } from "../components/common/WalletButton";
 import { useAuthorization } from "../utils/useAuthorization";
 import { useSkrStatus } from "../hooks/useSkrStatus";
 import { supabase } from "../lib/supabase";
 import { LeaderboardEntry } from "../types";
+import { s, fs, vs } from "../lib/responsive";
 
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const grassTexture = require("../../assets/images/grass-turf.png");
@@ -44,6 +50,63 @@ export function ProfileScreen() {
   const [stats, setStats] = useState<LeaderboardEntry | null>(null);
   const [username, setUsername] = useState<string>("");
   const [betHistory, setBetHistory] = useState<BetHistoryItem[]>([]);
+  const [isEditingUsername, setIsEditingUsername] = useState(false);
+  const [editedUsername, setEditedUsername] = useState("");
+  const [savingUsername, setSavingUsername] = useState(false);
+
+  const handleEditUsername = () => {
+    setEditedUsername(username);
+    setIsEditingUsername(true);
+  };
+
+  const handleSaveUsername = async () => {
+    const trimmed = editedUsername.trim();
+    if (trimmed.length < 3) {
+      Alert.alert("Error", "Username must be at least 3 characters");
+      return;
+    }
+    if (!/^[a-zA-Z0-9_]+$/.test(trimmed)) {
+      Alert.alert("Error", "Only letters, numbers, and underscores allowed");
+      return;
+    }
+    if (trimmed === username) {
+      setIsEditingUsername(false);
+      return;
+    }
+
+    setSavingUsername(true);
+    const { data: existing } = await supabase
+      .from("users")
+      .select("wallet_address")
+      .eq("username", trimmed)
+      .limit(1);
+
+    if (existing && existing.length > 0) {
+      Alert.alert("Error", "Username already taken");
+      setSavingUsername(false);
+      return;
+    }
+
+    const { error } = await supabase
+      .from("users")
+      .update({ username: trimmed })
+      .eq("wallet_address", walletAddress);
+
+    if (error) {
+      Alert.alert("Error", error.message);
+    } else {
+      setUsername(trimmed);
+      setIsEditingUsername(false);
+    }
+    setSavingUsername(false);
+  };
+
+  const handleCopyAddress = async () => {
+    if (walletAddress) {
+      await Clipboard.setStringAsync(walletAddress);
+      Alert.alert("Copied", "Wallet address copied to clipboard");
+    }
+  };
 
   const walletAddress = selectedAccount?.publicKey.toBase58();
 
@@ -164,11 +227,39 @@ export function ProfileScreen() {
       <ScrollView style={styles.container} contentContainerStyle={styles.content}>
         {/* User card */}
         <View style={styles.userCard}>
-          <Text style={styles.username}>{displayName}</Text>
+          {isEditingUsername ? (
+            <View style={styles.editRow}>
+              <TextInput
+                style={styles.usernameInput}
+                value={editedUsername}
+                onChangeText={setEditedUsername}
+                autoCapitalize="none"
+                autoCorrect={false}
+                maxLength={20}
+                autoFocus
+              />
+              <TouchableOpacity style={styles.saveBtn} onPress={handleSaveUsername} disabled={savingUsername}>
+                <Text style={styles.saveBtnText}>{savingUsername ? "..." : "Save"}</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.cancelEditBtn} onPress={() => setIsEditingUsername(false)}>
+                <Text style={styles.cancelEditText}>Cancel</Text>
+              </TouchableOpacity>
+            </View>
+          ) : (
+            <TouchableOpacity onPress={handleEditUsername} activeOpacity={0.7}>
+              <Text style={styles.username}>{displayName}</Text>
+              <Text style={styles.tapToEdit}>tap to edit</Text>
+            </TouchableOpacity>
+          )}
           <Text style={styles.walletLabel}>WALLET</Text>
-          <Text style={styles.walletAddress}>
-            {walletAddress!.slice(0, 8)}...{walletAddress!.slice(-8)}
-          </Text>
+          <View style={styles.walletRow}>
+            <Text style={styles.walletAddress}>
+              {walletAddress!.slice(0, 8)}...{walletAddress!.slice(-8)}
+            </Text>
+            <TouchableOpacity onPress={handleCopyAddress} style={styles.copyBtn} activeOpacity={0.6}>
+              <MaterialCommunityIcon name="content-copy" size={s(14)} color={C.sandLight} />
+            </TouchableOpacity>
+          </View>
           {hasSkr && (
             <View style={styles.skrBadge}>
               <Text style={styles.skrText}>SKR HOLDER</Text>
@@ -258,81 +349,136 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   content: {
-    padding: 16,
-    paddingBottom: 40,
+    padding: s(16),
+    paddingBottom: vs(40),
   },
   centered: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    gap: 16,
+    gap: s(16),
   },
   centeredTitle: {
     color: C.cream,
-    fontSize: 22,
+    fontSize: fs(22),
     fontWeight: "900",
     letterSpacing: 2,
   },
   centeredSubtitle: {
     color: C.muted,
-    fontSize: 14,
+    fontSize: fs(14),
   },
   userCard: {
     backgroundColor: C.sand + "18",
-    borderRadius: 10,
-    padding: 20,
+    borderRadius: s(10),
+    padding: s(20),
     alignItems: "center",
     borderWidth: 1,
     borderColor: C.sand + "33",
-    marginBottom: 12,
+    marginBottom: vs(12),
   },
   username: {
     color: C.cream,
-    fontSize: 22,
+    fontSize: fs(40),
     fontWeight: "900",
-    marginBottom: 12,
+    textAlign: "center",
+  },
+  tapToEdit: {
+    color: "#FFFFFF",
+    fontSize: fs(10),
+    textAlign: "center",
+    marginTop: vs(1),
+    marginBottom: vs(12),
+  },
+  editRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: s(8),
+    marginBottom: vs(12),
+  },
+  usernameInput: {
+    flex: 1,
+    backgroundColor: C.sand + "18",
+    borderRadius: s(8),
+    borderWidth: 1,
+    borderColor: C.sand + "44",
+    paddingHorizontal: s(12),
+    paddingVertical: vs(8),
+    color: C.cream,
+    fontSize: fs(16),
+    fontWeight: "700",
+  },
+  saveBtn: {
+    backgroundColor: C.green + "22",
+    borderWidth: 1,
+    borderColor: C.green + "66",
+    borderRadius: s(8),
+    paddingHorizontal: s(14),
+    paddingVertical: vs(8),
+  },
+  saveBtnText: {
+    color: C.green,
+    fontSize: fs(12),
+    fontWeight: "800",
+  },
+  cancelEditBtn: {
+    paddingHorizontal: s(10),
+    paddingVertical: vs(8),
+  },
+  cancelEditText: {
+    color: C.muted,
+    fontSize: fs(12),
+    fontWeight: "700",
+  },
+  walletRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: s(6),
+  },
+  copyBtn: {
+    padding: s(4),
   },
   walletLabel: {
     color: C.sandDark,
-    fontSize: 9,
+    fontSize: fs(9),
     fontWeight: "800",
     letterSpacing: 2,
-    marginBottom: 4,
+    marginBottom: vs(4),
   },
   walletAddress: {
     color: C.sandLight,
-    fontSize: 12,
+    fontSize: fs(12),
     fontWeight: "600",
     fontVariant: ["tabular-nums"],
   },
   skrBadge: {
-    marginTop: 12,
-    paddingHorizontal: 14,
-    paddingVertical: 5,
-    borderRadius: 8,
+    marginTop: vs(12),
+    paddingHorizontal: s(14),
+    paddingVertical: vs(5),
+    borderRadius: s(8),
     backgroundColor: C.gold + "15",
     borderWidth: 1,
     borderColor: C.gold + "44",
   },
   skrText: {
     color: C.gold,
-    fontSize: 9,
+    fontSize: fs(9),
     fontWeight: "800",
     letterSpacing: 2,
   },
   walletActions: {
-    marginTop: 12,
+    marginTop: vs(12),
   },
   statsBar: {
     flexDirection: "row",
     alignItems: "center",
-    paddingVertical: 10,
-    paddingHorizontal: 12,
+    paddingVertical: vs(10),
+    paddingHorizontal: s(12),
     backgroundColor: C.sand + "18",
-    borderRadius: 10,
+    borderRadius: s(10),
     borderWidth: 1,
     borderColor: C.sand + "33",
-    marginBottom: 12,
+    marginBottom: vs(12),
   },
   statItem: {
     flex: 1,
@@ -340,45 +486,45 @@ const styles = StyleSheet.create({
   },
   statDivider: {
     width: 1,
-    height: 24,
+    height: vs(24),
     backgroundColor: C.sand + "33",
-    marginHorizontal: 4,
+    marginHorizontal: s(4),
   },
   statLabel: {
     color: C.sandDark,
-    fontSize: 8,
+    fontSize: fs(8),
     fontWeight: "700",
     letterSpacing: 1,
-    marginBottom: 2,
+    marginBottom: vs(2),
   },
   statValue: {
     color: C.cream,
-    fontSize: 16,
+    fontSize: fs(16),
     fontWeight: "900",
     fontVariant: ["tabular-nums"],
   },
   historySection: {
-    marginBottom: 16,
+    marginBottom: vs(16),
   },
   historyTitle: {
     color: C.sand,
-    fontSize: 10,
+    fontSize: fs(10),
     fontWeight: "800",
     letterSpacing: 1.5,
-    marginBottom: 8,
+    marginBottom: vs(8),
   },
   emptyText: {
     color: C.muted,
-    fontSize: 13,
+    fontSize: fs(13),
     textAlign: "center",
-    paddingVertical: 20,
+    paddingVertical: vs(20),
   },
   betRow: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingVertical: 10,
-    paddingHorizontal: 12,
+    paddingVertical: vs(10),
+    paddingHorizontal: s(12),
     borderBottomWidth: 1,
     borderBottomColor: C.brownDark + "88",
   },
@@ -387,25 +533,25 @@ const styles = StyleSheet.create({
   },
   betRace: {
     color: C.sandLight,
-    fontSize: 13,
+    fontSize: fs(13),
     fontWeight: "700",
   },
   betCoin: {
     color: C.muted,
-    fontSize: 10,
-    marginTop: 2,
+    fontSize: fs(10),
+    marginTop: vs(2),
   },
   betResult: {
     alignItems: "flex-end",
   },
   betResultText: {
-    fontSize: 13,
+    fontSize: fs(13),
     fontWeight: "900",
     fontVariant: ["tabular-nums"],
   },
   betDate: {
     color: C.muted,
-    fontSize: 9,
-    marginTop: 2,
+    fontSize: fs(9),
+    marginTop: vs(2),
   },
 });

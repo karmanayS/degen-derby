@@ -4,6 +4,7 @@ import { HorseLane } from "./HorseLane";
 import { HorsePosition } from "../../lib/race-engine";
 import { Coin } from "../../types";
 import WoodGrainTexture from "../common/WoodGrainTexture";
+import { s, vs } from "../../lib/responsive";
 
 const T = {
   cardBg: "#221710",
@@ -79,16 +80,16 @@ export function HorseTrack({
 
 const styles = StyleSheet.create({
   container: {
-    marginVertical: 8,
-    marginHorizontal: 12,
-    borderRadius: 12,
+    marginVertical: vs(8),
+    marginHorizontal: s(12),
+    borderRadius: s(12),
     overflow: "hidden",
     borderWidth: 1.5,
     borderColor: T.brownWood + "88",
     backgroundColor: T.cardBg,
   },
   trackBody: {
-    paddingVertical: 4,
+    paddingVertical: vs(4),
     zIndex: 1,
   },
 });

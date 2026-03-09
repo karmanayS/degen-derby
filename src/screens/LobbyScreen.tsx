@@ -24,6 +24,7 @@ import { RaceCard } from "../components/common/RaceCard";
 import { useRaces } from "../hooks/useRaces";
 import { useRaceScheduler } from "../hooks/useRaceScheduler";
 import { Race } from "../types";
+import { s, fs, vs } from "../lib/responsive";
 
 const T = {
   bg: "#0D2214",
@@ -201,12 +202,12 @@ export function LobbyScreen() {
       </View>
 
       {loading ? (
-        <ActivityIndicator color={T.gold} style={{ marginTop: 40 }} />
+        <ActivityIndicator color={T.gold} style={{ marginTop: vs(40) }} />
       ) : (
         <>
         {noActiveRaces && (
           <View style={styles.banner}>
-            <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
+            <View style={{ flexDirection: "row", alignItems: "center", gap: s(4) }}>
               <Text style={styles.bannerText}>Races will start soon</Text>
               <BlinkingDot delay={0} />
               <BlinkingDot delay={200} />
@@ -259,22 +260,23 @@ const styles = StyleSheet.create({
   },
   shimmerWave: {
     position: "absolute",
-    left: -24,
-    right: -24,
+    left: s(-24),
+    right: s(-24),
     overflow: "hidden",
   },
   filterRow: {
     flexDirection: "row",
-    paddingHorizontal: 14,
-    paddingTop: 8,
-    paddingBottom: 10,
-    gap: 8,
+    justifyContent: "center",
+    paddingHorizontal: s(14),
+    paddingTop: vs(8),
+    paddingBottom: vs(10),
+    gap: s(8),
     zIndex: 1,
   },
   filterBtn: {
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: 20,
+    paddingHorizontal: s(14),
+    paddingVertical: vs(8),
+    borderRadius: s(20),
     backgroundColor: "#1A2E1F",
     borderWidth: 1,
     borderColor: "#2E7D32" + "44",
@@ -285,7 +287,7 @@ const styles = StyleSheet.create({
   },
   filterText: {
     color: T.sandLight,
-    fontSize: 12,
+    fontSize: fs(12),
     fontWeight: "700",
   },
   filterTextActive: {
@@ -294,10 +296,10 @@ const styles = StyleSheet.create({
   },
   banner: {
     alignItems: "center" as const,
-    paddingVertical: 12,
-    marginHorizontal: 14,
-    marginTop: 4,
-    borderRadius: 10,
+    paddingVertical: vs(12),
+    marginHorizontal: s(14),
+    marginTop: vs(4),
+    borderRadius: s(10),
     backgroundColor: T.gold + "18",
     borderWidth: 1,
     borderColor: T.gold + "44",
@@ -305,31 +307,32 @@ const styles = StyleSheet.create({
   },
   bannerText: {
     color: T.gold,
-    fontSize: 13,
+    fontSize: fs(13),
     fontWeight: "700" as const,
   },
   dot: {
-    width: 5,
-    height: 5,
-    borderRadius: 2.5,
+    width: s(5),
+    height: s(5),
+    borderRadius: s(2.5),
     backgroundColor: T.gold,
+    marginTop: vs(2),
   },
   list: {
-    paddingBottom: 24,
-    paddingTop: 4,
+    paddingBottom: vs(24),
+    paddingTop: vs(4),
   },
   empty: {
     alignItems: "center",
-    paddingTop: 60,
+    paddingTop: vs(60),
   },
   emptyText: {
     color: T.sandLight,
-    fontSize: 14,
+    fontSize: fs(14),
     fontWeight: "700",
   },
   emptySubtext: {
     color: T.muted,
-    fontSize: 11,
-    marginTop: 4,
+    fontSize: fs(11),
+    marginTop: vs(4),
   },
 });

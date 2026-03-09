@@ -53,6 +53,12 @@ export function HomeNavigator() {
         name="Leaderboard"
         component={LeaderboardScreen}
         options={{
+          headerShown: true,
+          title: "LEADERBOARD",
+          headerStyle: { backgroundColor: "#0F1A12", shadowColor: "transparent", elevation: 0 } as any,
+          headerTintColor: "#D7C29E",
+          headerTitleStyle: { fontWeight: "900", fontSize: 16 },
+          headerTitleAlign: "center",
           tabBarLabel: "Leaderboard",
           tabBarIcon: ({ color, size }) => (
             <MaterialCommunityIcon name="trophy" size={size} color={color} />

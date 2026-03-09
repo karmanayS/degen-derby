@@ -13,6 +13,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import { supabase } from "../lib/supabase";
 import { useAuthorization } from "../utils/useAuthorization";
 import { Race } from "../types";
+import { s, fs, vs } from "../lib/responsive";
 
 const C = {
   sand: "#C2A878",
@@ -204,7 +205,7 @@ export function ResultsScreen() {
             <Image source={{ uri: winner.logo }} style={styles.winnerLogo} />
           ) : (
             <View style={[styles.winnerLogo, { justifyContent: "center", alignItems: "center" }]}>
-              <Text style={{ color: C.gold, fontSize: 20, fontWeight: "900" }}>{winner.symbol[0]}</Text>
+              <Text style={{ color: C.gold, fontSize: fs(20), fontWeight: "900" }}>{winner.symbol[0]}</Text>
             </View>
           )}
           <Text style={styles.winnerName}>{winner.name}</Text>
@@ -261,7 +262,7 @@ export function ResultsScreen() {
                 <Image source={{ uri: coin.logo }} style={styles.rankLogo} />
               ) : (
                 <View style={[styles.rankLogo, { justifyContent: "center", alignItems: "center", backgroundColor: C.sand + "22" }]}>
-                  <Text style={{ color: C.gold, fontSize: 10, fontWeight: "bold" }}>{coin.symbol[0]}</Text>
+                  <Text style={{ color: C.gold, fontSize: fs(10), fontWeight: "bold" }}>{coin.symbol[0]}</Text>
                 </View>
               )}
               <View style={styles.rankInfo}>
@@ -297,57 +298,57 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   content: {
-    paddingBottom: 40,
+    paddingBottom: vs(40),
   },
   loadingText: {
     color: C.muted,
     textAlign: "center",
-    marginTop: 60,
-    fontSize: 14,
+    marginTop: vs(60),
+    fontSize: fs(14),
   },
   winnerBanner: {
     alignItems: "center",
-    paddingVertical: 28,
+    paddingVertical: vs(28),
     backgroundColor: C.sand + "18",
     borderBottomWidth: 1,
     borderBottomColor: C.sand + "33",
-    marginHorizontal: 16,
-    marginTop: 16,
-    borderRadius: 10,
+    marginHorizontal: s(16),
+    marginTop: vs(16),
+    borderRadius: s(10),
     borderWidth: 1,
     borderColor: C.sand + "33",
   },
   trophyText: {
     color: C.gold,
-    fontSize: 10,
+    fontSize: fs(10),
     fontWeight: "800",
     letterSpacing: 3,
-    marginBottom: 14,
+    marginBottom: vs(14),
   },
   winnerLogo: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
+    width: s(48),
+    height: s(48),
+    borderRadius: s(24),
     backgroundColor: C.sand + "22",
     borderWidth: 2,
     borderColor: C.gold,
-    marginBottom: 10,
+    marginBottom: vs(10),
   },
   winnerName: {
     color: C.cream,
-    fontSize: 22,
+    fontSize: fs(22),
     fontWeight: "900",
   },
   winnerChange: {
     color: C.green,
-    fontSize: 18,
+    fontSize: fs(18),
     fontWeight: "800",
-    marginTop: 4,
+    marginTop: vs(4),
   },
   resultBox: {
-    margin: 16,
-    padding: 20,
-    borderRadius: 10,
+    margin: s(16),
+    padding: s(20),
+    borderRadius: s(10),
     alignItems: "center",
     borderWidth: 1,
   },
@@ -360,47 +361,47 @@ const styles = StyleSheet.create({
     borderColor: C.danger + "22",
   },
   resultLabel: {
-    fontSize: 9,
+    fontSize: fs(9),
     fontWeight: "800",
     letterSpacing: 3,
     color: C.sandDark,
-    marginBottom: 4,
+    marginBottom: vs(4),
   },
   resultTitle: {
     color: C.cream,
-    fontSize: 20,
+    fontSize: fs(20),
     fontWeight: "900",
   },
   payoutText: {
     color: C.green,
-    fontSize: 20,
+    fontSize: fs(20),
     fontWeight: "900",
-    marginTop: 8,
+    marginTop: vs(8),
     fontVariant: ["tabular-nums"],
   },
   pickText: {
     color: C.sandLight,
-    fontSize: 14,
-    marginTop: 8,
+    fontSize: fs(14),
+    marginTop: vs(8),
   },
   rankingsTitle: {
     color: C.sand,
-    fontSize: 10,
+    fontSize: fs(10),
     fontWeight: "800",
     letterSpacing: 2,
-    paddingHorizontal: 16,
-    marginTop: 8,
-    marginBottom: 8,
+    paddingHorizontal: s(16),
+    marginTop: vs(8),
+    marginBottom: vs(8),
   },
   rankRow: {
     flexDirection: "row",
     alignItems: "center",
-    paddingVertical: 10,
-    paddingHorizontal: 12,
-    marginHorizontal: 16,
-    marginVertical: 2,
+    paddingVertical: vs(10),
+    paddingHorizontal: s(12),
+    marginHorizontal: s(16),
+    marginVertical: vs(2),
     backgroundColor: C.sand + "18",
-    borderRadius: 10,
+    borderRadius: s(10),
     borderWidth: 1,
     borderColor: C.sand + "33",
   },
@@ -412,59 +413,59 @@ const styles = StyleSheet.create({
   },
   rankNum: {
     color: C.muted,
-    fontSize: 14,
+    fontSize: fs(14),
     fontWeight: "900",
-    width: 28,
+    width: s(28),
   },
   rankLogo: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
+    width: s(24),
+    height: s(24),
+    borderRadius: s(12),
     backgroundColor: C.sand + "22",
-    marginRight: 8,
+    marginRight: s(8),
   },
   rankInfo: {
     flex: 1,
   },
   rankName: {
     color: C.sandLight,
-    fontSize: 13,
+    fontSize: fs(13),
     fontWeight: "700",
   },
   rankSymbol: {
     color: C.muted,
-    fontSize: 10,
+    fontSize: fs(10),
   },
   rankChange: {
-    fontSize: 14,
+    fontSize: fs(14),
     fontWeight: "800",
     fontVariant: ["tabular-nums"],
   },
   pendingText: {
     color: C.gold,
-    fontSize: 13,
+    fontSize: fs(13),
     fontWeight: "700",
-    marginTop: 8,
+    marginTop: vs(8),
     letterSpacing: 1,
   },
   claimedText: {
     color: C.green,
-    fontSize: 13,
+    fontSize: fs(13),
     fontWeight: "700",
-    marginTop: 8,
+    marginTop: vs(8),
     letterSpacing: 1,
   },
   nextBtn: {
-    margin: 16,
-    marginTop: 20,
-    paddingVertical: 14,
-    borderRadius: 10,
+    margin: s(16),
+    marginTop: vs(20),
+    paddingVertical: vs(14),
+    borderRadius: s(10),
     backgroundColor: C.gold,
     alignItems: "center",
   },
   nextBtnText: {
     color: "#0A1A0E",
-    fontSize: 15,
+    fontSize: fs(15),
     fontWeight: "800",
   },
 });

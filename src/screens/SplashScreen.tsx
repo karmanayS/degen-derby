@@ -10,7 +10,6 @@ import {
   Platform,
   ImageBackground,
   Image,
-  Dimensions,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import Animated, {
@@ -24,10 +23,11 @@ import Animated, {
 import { useMobileWallet } from "../utils/useMobileWallet";
 import { supabase } from "../lib/supabase";
 import { COLORS } from "../lib/constants";
+import { s, fs, vs, SCREEN_WIDTH } from "../lib/responsive";
 
 const grassTexture = require("../../assets/images/grass-turf.png");
 
-const { width: SCREEN_W } = Dimensions.get("window");
+const SCREEN_W = SCREEN_WIDTH;
 
 // Memecoin logos for the arc display
 const MEME_COINS = [
@@ -227,9 +227,9 @@ export function SplashScreen() {
         {/* Horse silhouettes */}
         <View style={styles.horsesRow}>
           <Text style={[styles.horseChar, { color: COLORS.sandLight }]}>{"\u265E"}</Text>
-          <Text style={[styles.horseChar, { color: COLORS.sand, fontSize: 40 }]}>{"\u265E"}</Text>
-          <Text style={[styles.horseChar, { color: COLORS.cream, fontSize: 52 }]}>{"\u265E"}</Text>
-          <Text style={[styles.horseChar, { color: COLORS.sand, fontSize: 40 }]}>{"\u265E"}</Text>
+          <Text style={[styles.horseChar, { color: COLORS.sand, fontSize: fs(32) }]}>{"\u265E"}</Text>
+          <Text style={[styles.horseChar, { color: COLORS.cream, fontSize: fs(40) }]}>{"\u265E"}</Text>
+          <Text style={[styles.horseChar, { color: COLORS.sand, fontSize: fs(32) }]}>{"\u265E"}</Text>
           <Text style={[styles.horseChar, { color: COLORS.sandLight }]}>{"\u265E"}</Text>
         </View>
 
@@ -297,11 +297,11 @@ export function SplashScreen() {
         {/* Track accent */}
         <View style={styles.trackAccent}>
           <View style={styles.trackDot} />
-          <View style={[styles.trackDash, { width: 20 }]} />
+          <View style={[styles.trackDash, { width: s(20) }]} />
           <View style={styles.trackDot} />
-          <View style={[styles.trackDash, { width: 30 }]} />
+          <View style={[styles.trackDash, { width: s(30) }]} />
           <View style={styles.trackDot} />
-          <View style={[styles.trackDash, { width: 20 }]} />
+          <View style={[styles.trackDash, { width: s(20) }]} />
           <View style={styles.trackDot} />
         </View>
       </View>
@@ -320,14 +320,14 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    paddingHorizontal: 32,
-    paddingTop: 30,
+    paddingHorizontal: s(32),
+    paddingTop: vs(30),
   },
   arcContainer: {
-    width: ARC_RADIUS_X * 2 + 56,
-    height: ARC_RADIUS_Y + 28,
+    width: ARC_RADIUS_X * 2 + s(56),
+    height: ARC_RADIUS_Y + vs(28),
     alignSelf: "center",
-    marginBottom: -70,
+    marginBottom: vs(-70),
   },
   arcCoin: {
     position: "absolute",
@@ -335,12 +335,12 @@ const styles = StyleSheet.create({
   horsesRow: {
     flexDirection: "row",
     alignItems: "flex-end",
-    gap: 8,
-    marginBottom: 24,
+    gap: s(8),
+    marginBottom: vs(24),
     transform: [{ scaleX: -1 }],
   },
   horseChar: {
-    fontSize: 34,
+    fontSize: fs(26),
     fontWeight: "900",
     opacity: 0.7,
   },
@@ -348,7 +348,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     width: "80%",
-    marginBottom: 12,
+    marginBottom: vs(12),
   },
   diamondLine: {
     flex: 1,
@@ -356,17 +356,17 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.sand + "33",
   },
   diamond: {
-    width: 8,
-    height: 8,
+    width: s(8),
+    height: s(8),
     backgroundColor: COLORS.sand,
     transform: [{ rotate: "45deg" }],
-    marginHorizontal: 12,
+    marginHorizontal: s(12),
   },
   title: {
-    fontSize: 38,
+    fontSize: fs(38),
     fontWeight: "900",
     color: COLORS.cream,
-    letterSpacing: 8,
+    letterSpacing: s(4),
     textShadowColor: COLORS.grassDark,
     textShadowOffset: { width: 0, height: 2 },
     textShadowRadius: 4,
@@ -374,8 +374,8 @@ const styles = StyleSheet.create({
   subtitleRow: {
     flexDirection: "row",
     alignItems: "center",
-    marginTop: 10,
-    marginBottom: 32,
+    marginTop: vs(10),
+    marginBottom: vs(32),
     width: "80%",
   },
   subtitleLine: {
@@ -384,74 +384,74 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.sandDark + "44",
   },
   subtitle: {
-    fontSize: 10,
+    fontSize: fs(10),
     color: COLORS.sandLight,
-    letterSpacing: 5,
+    letterSpacing: s(5),
     fontWeight: "700",
-    marginHorizontal: 12,
+    marginHorizontal: s(12),
   },
   taglineContainer: {
     alignItems: "center",
-    marginBottom: 36,
-    paddingHorizontal: 16,
+    marginBottom: vs(36),
+    paddingHorizontal: s(16),
   },
   tagline: {
-    fontSize: 17,
+    fontSize: fs(14),
     fontWeight: "800",
     color: COLORS.cream,
     textAlign: "center",
-    marginBottom: 10,
+    marginBottom: vs(10),
   },
   description: {
-    fontSize: 13,
+    fontSize: fs(13),
     color: COLORS.sandLight + "AA",
     textAlign: "center",
-    lineHeight: 20,
+    lineHeight: fs(20),
   },
   usernameInput: {
     backgroundColor: COLORS.sand + "18",
-    borderRadius: 10,
+    borderRadius: s(10),
     borderWidth: 1,
     borderColor: COLORS.sand + "33",
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    minWidth: 260,
+    paddingHorizontal: s(16),
+    paddingVertical: vs(12),
+    minWidth: s(260),
     color: COLORS.cream,
-    fontSize: 15,
+    fontSize: fs(15),
     fontWeight: "700",
     textAlign: "center",
-    marginBottom: 14,
+    marginBottom: vs(14),
   },
   error: {
     color: COLORS.danger,
-    fontSize: 12,
-    marginBottom: 8,
+    fontSize: fs(12),
+    marginBottom: vs(8),
   },
   connectBtn: {
-    paddingHorizontal: 52,
-    paddingVertical: 16,
-    borderRadius: 12,
-    minWidth: 260,
+    paddingHorizontal: s(52),
+    paddingVertical: vs(16),
+    borderRadius: s(12),
+    minWidth: s(260),
     alignItems: "center",
     borderWidth: 1,
     borderColor: "#43A04766",
   },
   connectText: {
     color: COLORS.cream,
-    fontSize: 15,
+    fontSize: fs(15),
     fontWeight: "800",
-    letterSpacing: 2,
+    letterSpacing: s(2),
   },
   trackAccent: {
     flexDirection: "row",
     alignItems: "center",
-    marginTop: 32,
-    gap: 6,
+    marginTop: vs(32),
+    gap: s(6),
   },
   trackDot: {
-    width: 4,
-    height: 4,
-    borderRadius: 2,
+    width: s(4),
+    height: s(4),
+    borderRadius: s(2),
     backgroundColor: COLORS.sand + "44",
   },
   trackDash: {
@@ -470,16 +470,16 @@ const styles = StyleSheet.create({
     position: "absolute",
     top: 0,
     bottom: 0,
-    width: 2,
+    width: s(2),
     backgroundColor: "#1A1008",
     borderRadius: 1,
   },
   footer: {
     position: "absolute",
-    bottom: 8,
+    bottom: vs(8),
     alignSelf: "center",
     color: COLORS.warmBrown + "88",
-    fontSize: 10,
+    fontSize: fs(10),
     letterSpacing: 1,
   },
 });

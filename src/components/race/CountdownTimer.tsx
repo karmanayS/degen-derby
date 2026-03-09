@@ -8,6 +8,7 @@ import Animated, {
   withSequence,
   withTiming,
 } from "react-native-reanimated";
+import { s, fs, vs } from "../../lib/responsive";
 
 const T = {
   sandLight: "#D7C29E",
@@ -124,7 +125,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   label: {
-    fontSize: 9,
+    fontSize: fs(9),
     fontWeight: "800",
     letterSpacing: 1,
   },
@@ -133,36 +134,36 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   digitBox: {
-    borderRadius: 8,
-    paddingHorizontal: 14,
-    paddingVertical: 7,
+    borderRadius: s(8),
+    paddingHorizontal: s(14),
+    paddingVertical: vs(7),
     borderWidth: 1,
     borderColor: T.sand + "66",
   },
   digit: {
     color: T.sandLight,
-    fontSize: 30,
+    fontSize: fs(30),
     fontWeight: "900",
     fontVariant: ["tabular-nums"],
     letterSpacing: 2,
   },
   colon: {
     color: T.muted,
-    fontSize: 24,
+    fontSize: fs(24),
     fontWeight: "900",
-    marginHorizontal: 4,
+    marginHorizontal: s(4),
   },
   digitBoxCompact: {
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 6,
+    paddingHorizontal: s(8),
+    paddingVertical: vs(4),
+    borderRadius: s(6),
   },
   digitCompact: {
-    fontSize: 14,
+    fontSize: fs(14),
     letterSpacing: 1,
   },
   colonCompact: {
-    fontSize: 12,
-    marginHorizontal: 2,
+    fontSize: fs(12),
+    marginHorizontal: s(2),
   },
 });

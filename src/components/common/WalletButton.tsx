@@ -2,6 +2,7 @@ import React from "react";
 import { Text, StyleSheet, TouchableOpacity } from "react-native";
 import { useAuthorization } from "../../utils/useAuthorization";
 import { useMobileWallet } from "../../utils/useMobileWallet";
+import { s, fs, vs } from "../../lib/responsive";
 
 const C = {
   sand: "#C2A878",
@@ -41,19 +42,19 @@ export function WalletButton() {
 const styles = StyleSheet.create({
   button: {
     backgroundColor: C.sand,
-    paddingHorizontal: 20,
-    paddingVertical: 12,
-    borderRadius: 10,
+    paddingHorizontal: s(20),
+    paddingVertical: vs(12),
+    borderRadius: s(10),
     alignItems: "center",
   },
   connectedButton: {
     backgroundColor: C.danger + "10",
     borderWidth: 1,
-    borderColor: C.danger + "44",
+    borderColor: C.danger + "99",
   },
   text: {
     color: "#0A1A0E",
-    fontSize: 13,
+    fontSize: fs(13),
     fontWeight: "700",
   },
   connectedText: {

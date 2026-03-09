@@ -20,6 +20,8 @@ const T = {
   danger: "#FF4444",
 };
 
+import { s, fs, vs } from "../../lib/responsive";
+
 interface HorseLaneProps {
   symbol: string;
   name: string;
@@ -35,7 +37,7 @@ interface HorseLaneProps {
   onSelect?: (symbol: string) => void;
 }
 
-const ICON_SIZE = 24;
+const ICON_SIZE = s(24);
 
 export function HorseLane({
   symbol,
@@ -104,7 +106,7 @@ export function HorseLane({
             />
           ) : (
             <View style={[styles.coinIcon, styles.coinIconPlaceholder, isLeader && styles.leaderIcon, isSelected && styles.selectedIcon]}>
-              <Text style={{ color: T.gold, fontSize: 10, fontWeight: "bold" }}>{symbol[0]}</Text>
+              <Text style={{ color: T.gold, fontSize: fs(10), fontWeight: "bold" }}>{symbol[0]}</Text>
             </View>
           )}
         </Animated.View>
@@ -121,8 +123,8 @@ const styles = StyleSheet.create({
   laneWrapper: {
     flexDirection: "row",
     alignItems: "center",
-    paddingHorizontal: 10,
-    paddingVertical: 6,
+    paddingHorizontal: s(10),
+    paddingVertical: vs(6),
     borderBottomWidth: 1,
     borderBottomColor: T.brownDark + "88",
   },
@@ -133,13 +135,13 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     flexShrink: 0,
-    maxWidth: 100,
+    maxWidth: s(100),
   },
   laneNum: {
     color: T.muted,
-    fontSize: 15,
+    fontSize: fs(15),
     fontWeight: "900",
-    width: 20,
+    width: s(20),
     textAlign: "center",
   },
   leaderNum: {
@@ -147,27 +149,28 @@ const styles = StyleSheet.create({
   },
   coinName: {
     color: T.sandLight,
-    fontSize: 11,
+    fontSize: fs(11),
     fontWeight: "700",
-    marginLeft: 4,
+    marginLeft: s(4),
     flexShrink: 1,
+    marginRight: s(8),
   },
   trackArea: {
     flex: 1,
-    height: ICON_SIZE + 8,
+    height: ICON_SIZE + s(8),
     justifyContent: "center",
   },
   trackLine: {
     position: "absolute",
     left: 0,
     right: 0,
-    height: 2,
+    height: s(2),
     backgroundColor: "#6B5530",
     borderRadius: 1,
   },
   iconWrap: {
     position: "absolute",
-    top: 4,
+    top: vs(4),
     left: 0,
   },
   coinIcon: {
@@ -187,7 +190,7 @@ const styles = StyleSheet.create({
     borderWidth: 2.5,
     shadowColor: "#00FF88",
     shadowOpacity: 0.8,
-    shadowRadius: 10,
+    shadowRadius: s(10),
     shadowOffset: { width: 0, height: 0 },
     elevation: 12,
   },
@@ -196,7 +199,7 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     shadowColor: T.gold,
     shadowOpacity: 0.6,
-    shadowRadius: 8,
+    shadowRadius: s(8),
     shadowOffset: { width: 0, height: 0 },
     elevation: 8,
   },
@@ -205,16 +208,16 @@ const styles = StyleSheet.create({
     borderWidth: 2.5,
     shadowColor: "#FFD700",
     shadowOpacity: 1,
-    shadowRadius: 22,
+    shadowRadius: s(22),
     shadowOffset: { width: 0, height: 0 },
     elevation: 24,
   },
   percent: {
-    fontSize: 11,
+    fontSize: fs(11),
     fontWeight: "800",
     fontVariant: ["tabular-nums"],
-    width: 60,
+    width: s(60),
     textAlign: "right",
-    marginLeft: 6,
+    marginLeft: s(6),
   },
 });
